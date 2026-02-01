@@ -1,0 +1,185 @@
+name: Publish to Maven Central
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+      snapshot:
+        description: 'Publish as snapshot'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+  SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+  SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+  SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+  SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      
+    - name: Set version from tag or input
+      run: |
+        if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        elif [[ -n "${{ github.event.inputs.version }}" ]]; then
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ "${{ github.event.inputs.snapshot }}" == "true" ]]; then
+            VERSION="${VERSION}-SNAPSHOT"
+          fi
+        else
+          echo "No version specified"
+          exit 1
+        fi
+        
+        echo "VERSION_NAME=$VERSION" >> gradle.properties
+        echo "Publishing version: $VERSION"
+        
+    - name: Validate version
+      run: ./gradlew validateVersion
+      
+    - name: Run tests
+      run: ./gradlew test
+      
+    - name: Build project
+      run: ./gradlew build
+      
+    - name: Generate documentation
+      run: ./gradlew dokkaHtmlMultiModule
+      
+    - name: Validate publishing setup
+      run: ./gradlew checkPublishingReady
+      
+    - name: Publish to Maven Central
+      run: ./gradlew publishToSonatype --no-configuration-cache
+      
+    - name: Get staging repository ID
+      id: staging
+      run: |
+        REPO_ID=$(curl -s -u "${{ secrets.SONATYPE_USERNAME }}:${{ secrets.SONATYPE_PASSWORD }}" \
+          -X GET "https://s01.oss.sonatype.org/service/local/staging/profile_repositories" | \
+          jq -r '.[] | select(.repositoryId | startswith("compulsekit-")) | .repositoryId')
+        echo "repository_id=$REPO_ID" >> $GITHUB_OUTPUT
+        echo "Staging repository ID: $REPO_ID"
+        
+    - name: Wait for staging repository to close
+      run: |
+        REPO_ID="${{ steps.staging.outputs.repository_id }}"
+        for i in {1..30}; do
+          STATUS=$(curl -s -u "${{ secrets.SONATYPE_USERNAME }}:${{ secrets.SONATYPE_PASSWORD }}" \
+            -X GET "https://s01.oss.sonatype.org/service/local/staging/repository/$REPO_ID" | \
+            jq -r '.type')
+          
+          if [[ "$STATUS" == "closed" ]]; then
+            echo "Staging repository is closed"
+            break
+          elif [[ "$STATUS" == "open" ]]; then
+            echo "Waiting for staging repository to close... ($i/30)"
+            sleep 60
+          else
+            echo "Unexpected status: $STATUS"
+            exit 1
+          fi
+          
+          if [[ $i -eq 30 ]]; then
+            echo "Timeout waiting for staging repository to close"
+            exit 1
+          fi
+        done
+        
+    - name: Release staging repository
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      run: |
+        REPO_ID="${{ steps.staging.outputs.repository_id }}"
+        curl -s -u "${{ secrets.SONATYPE_USERNAME }}:${{ secrets.SONATYPE_PASSWORD }}" \
+          -X POST "https://s01.oss.sonatype.org/service/local/staging/bulk/close" \
+          -H "Content-Type: application/json" \
+          -d "{\"data\":{\"stagedRepositoryIds\":[\"$REPO_ID\"]}}" || true
+          
+        curl -s -u "${{ secrets.SONATYPE_USERNAME }}:${{ secrets.SONATYPE_PASSWORD }}" \
+          -X POST "https://s01.oss.sonatype.org/service/local/staging/bulk/promote" \
+          -H "Content-Type: application/json" \
+          -d "{\"data\":{\"stagedRepositoryIds\":[\"$REPO_ID\"]}}" || true
+          
+        echo "Staging repository released to Maven Central"
+        
+    - name: Comment on release
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const version = context.ref.replace('refs/tags/v', '');
+          const releaseNotes = `
+          ## PulseKit SDK v${version}
+          
+          ### Changes
+          - 🚀 Production-ready telemetry SDK
+          - 📱 Android lifecycle integration
+          - 💾 Offline-first event persistence
+          - 🔧 Zero integration work setup
+          
+          ### Installation
+          \`\`\`gradle
+          implementation("com.pulsekit:pulsekit-android:${version}")
+          \`\`\`
+          
+          ### Documentation
+          - [Quick Start Guide](https://github.com/pulsekit/pulsekit/blob/main/docs/Quickstart.md)
+          - [API Documentation](https://javadoc.io/doc/com.pulsekit/pulsekit-android/${version})
+          - [Architecture Guide](https://github.com/pulsekit/pulsekit/blob/main/docs/Architecture.md)
+          
+          🎉 Available now on Maven Central!
+          `;
+          
+          if (context.payload.repository.owner.type === 'User') {
+            // Personal repository
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.ref.replace('refs/tags/', ''),
+              body: releaseNotes
+            });
+          } else {
+            // Organization repository
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.ref.replace('refs/tags/', ''),
+              body: releaseNotes
+            });
+          }

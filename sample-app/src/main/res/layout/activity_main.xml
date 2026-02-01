@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/tv_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="PulseKit SDK Demo"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_description"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Click the buttons below to test different event tracking features of PulseKit SDK."
+        android:textSize="14sp"
+        android:layout_marginBottom="32dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_title" />
+
+    <Button
+        android:id="@+id/btn_track_custom"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Track Custom Event"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_description" />
+
+    <Button
+        android:id="@+id/btn_track_engagement"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Track Engagement Event"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_track_custom" />
+
+    <Button
+        android:id="@+id/btn_track_performance"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Track Performance Event"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_track_engagement" />
+
+    <Button
+        android:id="@+id/btn_track_error"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Track Error Event"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_track_performance" />
+
+    <Button
+        android:id="@+id/btn_session_info"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Show Session Info"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_track_error" />
+
+    <Button
+        android:id="@+id/btn_flush_events"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Flush Events"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_session_info" />
+
+    <Button
+        android:id="@+id/btn_backpressure_demo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Backpressure Demo"
+        android:layout_marginBottom="8dp"
+        android:background="#FF5722"
+        android:textColor="@android:color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_flush_events" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

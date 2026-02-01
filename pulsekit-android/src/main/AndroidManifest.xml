@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Required for network access when sending events -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Required for checking network connectivity -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+    <!-- Optional: Required for foreground service if using background processing -->
+    <!-- <uses-permission android:name="android.permission.WAKE_LOCK" /> -->
+
+    <application>
+        <!-- Auto-initialization using AndroidX Startup -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+
+            <!-- Uncomment to enable auto-initialization -->
+            <!--
+            <meta-data
+                android:name="com.pulsekit.android.PulseKitInitializer"
+                android:value="androidx.startup" />
+            -->
+        </provider>
+    </application>
+
+</manifest>
