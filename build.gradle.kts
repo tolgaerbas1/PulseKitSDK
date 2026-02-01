@@ -1,11 +1,11 @@
 plugins {
-    alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.kotlin.jvm) apply false
-    alias(libs.plugins.kotlin.multiplatform) apply false
-    alias(libs.plugins.kotlin.android) apply false
-    alias(libs.plugins.dokka) apply false
-    alias(libs.plugins.maven.publish) apply false
+    id("com.android.application") version "8.2.0" apply false
+    id("com.android.library") version "8.2.0" apply false
+    id("org.jetbrains.kotlin.jvm") version "1.9.22" apply false
+    id("org.jetbrains.kotlin.multiplatform") version "1.9.22" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+    id("org.jetbrains.dokka") version "1.9.10" apply false
+    id("com.vanniktech.maven.publish") version "0.25.3" apply false
 }
 
 // Apply versioning configuration

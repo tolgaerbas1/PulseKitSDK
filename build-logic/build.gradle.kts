@@ -1,6 +1,5 @@
 plugins {
     `kotlin-dsl`
-    alias(libs.plugins.kotlin.jvm)
 }
 
 repositories {
@@ -10,9 +9,9 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.android.gradle.plugin)
-    implementation(libs.kotlin.gradle.plugin)
-    implementation(libs.dokka.gradle.plugin)
-    implementation(libs.maven.publish.gradle.plugin)
-    implementation(libs.japicmp)
+    implementation("com.android.tools.build:gradle:8.2.0")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22")
+    implementation("org.jetbrains.dokka:dokka-gradle-plugin:1.9.10")
+    implementation("com.vanniktech:gradle-maven-publish-plugin:0.25.3")
+    implementation("com.github.siom79.japicmp:japicmp:0.17.2")
 }
