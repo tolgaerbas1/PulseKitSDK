@@ -5,9 +5,8 @@
  * and version bumping automation.
  */
 
-plugins {
-    base
-}
+// Apply base plugin
+apply(plugin = "base")
 
 // Version configuration
 val pulsekitVersion = project.property("VERSION_NAME") as String

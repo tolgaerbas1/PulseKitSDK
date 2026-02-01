@@ -1,19 +1,15 @@
 plugins {
-    id("com.android.application") version "8.2.0" apply false
-    id("com.android.library") version "8.2.0" apply false
-    id("org.jetbrains.kotlin.jvm") version "1.9.22" apply false
-    id("org.jetbrains.kotlin.multiplatform") version "1.9.22" apply false
-    id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+    id("com.android.application") version "8.1.4" apply false
+    id("com.android.library") version "8.1.4" apply false
+    id("org.jetbrains.kotlin.jvm") version "1.9.10" apply false
+    id("org.jetbrains.kotlin.multiplatform") version "1.9.10" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.10" apply false
     id("org.jetbrains.dokka") version "1.9.10" apply false
     id("com.vanniktech.maven.publish") version "0.25.3" apply false
 }
 
 // Apply versioning configuration
 apply(from = "gradle/versioning.gradle.kts")
-
-tasks.register("clean", Delete::class) {
-    delete(rootProject.buildDir)
-}
 
 // Multi-module documentation
 tasks.register<org.jetbrains.dokka.gradle.DokkaTask>("dokkaHtmlMultiModule") {
@@ -25,7 +21,7 @@ tasks.register<org.jetbrains.dokka.gradle.DokkaTask>("dokkaHtmlMultiModule") {
             includes.from("Module.md")
             sourceLink {
                 localDirectory.set(project.file("src"))
-                remoteUrl.set(java.net.URI("https://github.com/pulsekit/pulsekit/tree/main"))
+                remoteUrl.set(java.net.URL("https://github.com/pulsekit/pulsekit/tree/main"))
                 remoteLineSuffix.set("#L")
             }
         }

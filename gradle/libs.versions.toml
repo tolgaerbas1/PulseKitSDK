@@ -1,6 +1,6 @@
 [versions]
-kotlin = "1.9.22"
-android-gradle-plugin = "8.2.0"
+kotlin = "1.9.10"
+android-gradle-plugin = "8.1.4"
 coroutines = "1.7.3"
 androidx-lifecycle = "2.7.0"
 androidx-startup = "1.1.1"

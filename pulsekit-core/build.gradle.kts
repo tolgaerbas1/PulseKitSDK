@@ -6,33 +6,59 @@ plugins {
 }
 
 kotlin {
-    jvm()
+    jvm {
+        jvmToolchain(8)
+    }
     androidTarget {
         publishLibraryVariants("release")
+        compilations.all {
+            kotlinOptions {
+                jvmTarget = "1.8"
+            }
+        }
     }
     
     sourceSets {
-        commonMain.dependencies {
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
+        commonMain {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.kotlinx.serialization.json)
+            }
         }
         
-        commonTest.dependencies {
-            implementation(libs.kotlinx.coroutines.test)
+        commonTest {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.junit)
+            }
+        }
+        
+        val jvmMain by getting {
+            dependsOn(commonMain.get())
+            dependencies {
+                implementation(libs.kotlin.stdlib)
+                implementation(libs.sqlite.jdbc)
+            }
+        }
+        
+        val jvmTest by getting {
+            dependsOn(commonTest.get())
+            dependencies {
+                implementation(libs.mockito.core)
+            }
+        }
+        
+        // Ensure android source sets exist before configuring them
+        val androidMainSourceSet = findByName("androidMain") ?: create("androidMain")
+        androidMainSourceSet.dependsOn(commonMain.get())
+        androidMainSourceSet.dependencies {
+            implementation(libs.kotlin.stdlib)
+        }
+        
+        val androidTestSourceSet = findByName("androidTest") ?: create("androidTest")
+        androidTestSourceSet.dependsOn(commonTest.get())
+        androidTestSourceSet.dependencies {
             implementation(libs.junit)
-        }
-        
-        jvmMain.dependencies {
-            implementation(libs.kotlin.stdlib)
-            implementation(libs.sqlite.jdbc)
-        }
-        
-        jvmTest.dependencies {
-            implementation(libs.mockito.core)
-        }
-        
-        androidMain.dependencies {
-            implementation(libs.kotlin.stdlib)
         }
     }
 }
