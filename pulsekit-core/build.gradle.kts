@@ -7,32 +7,25 @@ plugins {
 
 kotlin {
     jvm {
-        jvmToolchain(8)
+        jvmToolchain(17)
     }
-    androidTarget {
-        publishLibraryVariants("release")
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "1.8"
-            }
-        }
-    }
-    
+
     sourceSets {
         commonMain {
             dependencies {
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.serialization.json)
+                implementation(libs.kotlinx.datetime)
             }
         }
-        
+
         commonTest {
             dependencies {
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.junit)
             }
         }
-        
+
         val jvmMain by getting {
             dependsOn(commonMain.get())
             dependencies {
@@ -40,25 +33,45 @@ kotlin {
                 implementation(libs.sqlite.jdbc)
             }
         }
-        
+
         val jvmTest by getting {
             dependsOn(commonTest.get())
             dependencies {
                 implementation(libs.mockito.core)
             }
         }
-        
-        // Ensure android source sets exist before configuring them
-        val androidMainSourceSet = findByName("androidMain") ?: create("androidMain")
-        androidMainSourceSet.dependsOn(commonMain.get())
-        androidMainSourceSet.dependencies {
-            implementation(libs.kotlin.stdlib)
+
+        // NOTE: androidMain/androidTest should only be configured when Android plugin is present.
+        // They are configured below inside plugins.withId("com.android.library").
+    }
+}
+
+// Configure Android target and android source sets only when Android Gradle plugin is applied to this project
+plugins.withId("com.android.library") {
+    extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension> {
+        androidTarget {
+            publishLibraryVariants("release")
+            compilations.all {
+                kotlinOptions {
+                    jvmTarget = "1.8"
+                }
+            }
         }
-        
-        val androidTestSourceSet = findByName("androidTest") ?: create("androidTest")
-        androidTestSourceSet.dependsOn(commonTest.get())
-        androidTestSourceSet.dependencies {
-            implementation(libs.junit)
+
+        sourceSets {
+            val androidMain by getting {
+                dependsOn(commonMain.get())
+                dependencies {
+                    implementation(libs.kotlin.stdlib)
+                }
+            }
+
+            val androidTest by getting {
+                dependsOn(commonTest.get())
+                dependencies {
+                    implementation(libs.junit)
+                }
+            }
         }
     }
 }

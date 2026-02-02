@@ -13,5 +13,5 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10")
     implementation("org.jetbrains.dokka:dokka-gradle-plugin:1.9.10")
     implementation("com.vanniktech:gradle-maven-publish-plugin:0.25.3")
-    implementation("com.github.siom79.japicmp:japicmp:0.17.2")
+    implementation("me.champeau.japicmp:japicmp-gradle:0.18.3")
 }

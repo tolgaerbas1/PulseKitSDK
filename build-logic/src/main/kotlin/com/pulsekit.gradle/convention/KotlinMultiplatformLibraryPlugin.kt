@@ -22,7 +22,7 @@ class KotlinMultiplatformLibraryPlugin : Plugin<Project> {
             
             extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension> {
                 jvm {
-                    jvmToolchain(8)
+                    jvmToolchain(17)
                 }
                 
                 androidTarget {

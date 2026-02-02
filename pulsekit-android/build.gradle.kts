@@ -43,13 +43,6 @@ android {
     buildFeatures {
         buildConfig = false
     }
-    
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
-        }
-    }
 }
 
 dependencies {
@@ -62,8 +55,8 @@ dependencies {
     implementation(libs.androidx.startup.runtime)
     
     // Feature flag dependencies
-    implementation(libs.japicmp)
-    
+    // japicmp is a build-time tool; do not add as an app/library runtime dependency
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.junit)
 }
