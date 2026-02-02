@@ -1,21 +1,18 @@
 package com.pulsekit.android
 
 import android.content.Context
-import com.pulsekit.core.api.PulseKit
-import com.pulsekit.core.api.PulseKitConfig
-import com.pulsekit.core.api.flags.PulseKitFeatureFlags
 import com.pulsekit.android.lifecycle.PulseKitLifecycleObserver
 import com.pulsekit.android.lifecycle.SessionLifecycleListener
-import com.pulsekit.android.networking.AndroidFeatureFlagService
-import com.pulsekit.android.storage.AndroidFlagStorage
 import com.pulsekit.android.storage.AndroidFileFlagStorage
-import com.pulsekit.core.api.networking.NetworkClient
-import com.pulsekit.core.api.flags.FeatureFlagManager
+import com.pulsekit.core.api.PulseKit
+import com.pulsekit.core.api.config.PulseKitConfig
+import com.pulsekit.core.api.flags.DiskFlagStorage
 import com.pulsekit.core.api.flags.FlagPersistence
 import com.pulsekit.core.api.flags.InMemoryFlagStorage
-import com.pulsekit.core.api.flags.DiskFlagStorage
+import com.pulsekit.core.api.flags.PulseKitFeatureFlags
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Android-specific entry point for PulseKit SDK with zero integration work.
@@ -218,16 +215,5 @@ public object PulseKitAndroid {
      * @param flag The feature flag to check
      * @return Current value of the flag
      */
-    public fun isFeatureFlagEnabled(flag: PulseKitFeatureFlags): Boolean {
-        return try {
-            PulseKit.instance.getBooleanFlag(flag)
-        } catch (e: Exception) {
-            flag.defaultValue.let { defaultValue ->
-                when (defaultValue) {
-                    is com.pulsekit.core.api.flags.FlagValue.BooleanValue -> defaultValue.value
-                    else -> false
-                }
-            }
-        }
-    }
+
 }

@@ -54,12 +54,3 @@ internal object SimplifiedPriorityCalculator {
         }
     }
 }
-
-/**
- * Simplified priority levels for events.
- */
-internal enum class EventPriority(val value: Int) {
-    CRITICAL(3),
-    HIGH(2),
-    LOW(1)
-}

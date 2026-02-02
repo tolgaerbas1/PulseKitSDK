@@ -1,10 +1,18 @@
 package com.pulsekit.android.networking
 
-import com.pulsekit.core.api.flags.FeatureFlagManager
-import com.pulsekit.core.api.networking.FeatureFlagService
 import com.pulsekit.core.api.networking.NetworkClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.longOrNull
 
 /**
  * Android-specific implementation of feature flag service.
@@ -14,29 +22,15 @@ import kotlinx.coroutines.launch
  */
 internal class AndroidFeatureFlagService(
     private val networkClient: NetworkClient,
-    private val flagManager: FeatureFlagManager,
     private val scope: CoroutineScope
-) : FeatureFlagService(networkClient, flagManager, scope) {
+) {
     
-    override suspend fun fetchFeatureFlags(): Result<com.pulsekit.core.api.networking.FeatureFlagResponse> {
+    suspend fun fetchFeatureFlags(): Result<FeatureFlagResponse> {
         return try {
-            // Use Android-specific networking
-            val response = networkClient.get("/api/v1/feature-flags")
-            
-            if (response.isSuccess) {
-                val flagResponse = parseFlagResponse(response.body ?: "")
-                updateFlagManager(flagResponse)
-                Result.success(flagResponse)
-            } else {
-                val error = com.pulsekit.core.api.networking.NetworkError(
-                    statusCode = response.statusCode,
-                    message = response.statusMessage ?: "Unknown error"
-                )
-                flagManager.handleFetchFailure(error)
-                Result.failure(error)
-            }
+            val responseBody = networkClient.get("/api/v1/feature-flags")
+            val flagResponse = parseFlagResponse(responseBody)
+            Result.success(flagResponse)
         } catch (e: Exception) {
-            flagManager.handleFetchFailure(e)
             Result.failure(e)
         }
     }
@@ -44,28 +38,25 @@ internal class AndroidFeatureFlagService(
     /**
      * Parse feature flag response from JSON.
      */
-    private fun parseFlagResponse(jsonBody: String): com.pulsekit.core.api.networking.FeatureFlagResponse {
-        val json = kotlinx.serialization.json.Json {
+    private fun parseFlagResponse(jsonBody: String): FeatureFlagResponse {
+        val json = Json {
             ignoreUnknownKeys = true
             isLenient = true
         }
         
-        val jsonObject = json.decodeFromString<kotlinx.serialization.json.JsonObject>(jsonBody)
+        val jsonObject = json.decodeFromString<JsonObject>(jsonBody)
         
         val flags = mutableMapOf<String, com.pulsekit.core.api.flags.FlagValue>()
         
-        jsonObject["flags"]?.let { flagsArray ->
-            if (flagsArray is kotlinx.serialization.json.JsonObject) {
-                flagsArray.forEach { (key, element) ->
-                    val flagValue = parseFlagValue(element)
-                    if (flagValue != null) {
-                        flags[key] = flagValue
-                    }
-                }
+        val flagsObject = jsonObject["flags"] as? JsonObject
+        flagsObject?.forEach { (key: String, element: JsonElement) ->
+            val flagValue = parseFlagValue(element)
+            if (flagValue != null) {
+                flags[key] = flagValue
             }
         }
         
-        return com.pulsekit.core.api.networking.FeatureFlagResponse(
+        return FeatureFlagResponse(
             flags = flags,
             timestamp = jsonObject["timestamp"]?.toString()?.toLongOrNull() ?: System.currentTimeMillis(),
             version = jsonObject["version"]?.toString() ?: "unknown"
@@ -75,9 +66,9 @@ internal class AndroidFeatureFlagService(
     /**
      * Parse individual flag value from JSON element.
      */
-    private fun parseFlagValue(element: kotlinx.serialization.json.JsonElement): com.pulsekit.core.api.flags.FlagValue? {
+    private fun parseFlagValue(element: JsonElement): com.pulsekit.core.api.flags.FlagValue? {
         return when (element) {
-            is kotlinx.serialization.json.JsonPrimitive -> {
+            is JsonPrimitive -> {
                 when {
                     element.isString -> com.pulsekit.core.api.flags.FlagValue.StringValue(element.content)
                     element.booleanOrNull != null -> com.pulsekit.core.api.flags.FlagValue.BooleanValue(element.boolean)
@@ -93,14 +84,10 @@ internal class AndroidFeatureFlagService(
     /**
      * Update flag manager with server values.
      */
-    private fun updateFlagManager(response: com.pulsekit.core.api.networking.FeatureFlagResponse) {
-        flagManager.updateServerFlags(response.flags)
-    }
-    
     /**
      * Start periodic flag fetching with Android-specific optimizations.
      */
-    override fun startPeriodicFetching(intervalMs: Long = 300000L) {
+    fun startPeriodicFetching(intervalMs: Long = 300000L) {
         scope.launch {
             while (true) {
                 try {
@@ -117,3 +104,9 @@ internal class AndroidFeatureFlagService(
         }
     }
 }
+
+internal data class FeatureFlagResponse(
+    val flags: Map<String, com.pulsekit.core.api.flags.FlagValue>,
+    val timestamp: Long,
+    val version: String
+)

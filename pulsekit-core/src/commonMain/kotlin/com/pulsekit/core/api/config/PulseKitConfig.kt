@@ -2,6 +2,7 @@ package com.pulsekit.core.api.config
 
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.hours
 import com.pulsekit.core.api.backpressure.BackpressureConfig
 import com.pulsekit.core.api.backpressure.DropPolicy
 
@@ -107,7 +108,7 @@ public data class PulseKitConfig(
      * Backpressure configuration for queue management.
      * Controls how events are dropped when queues become full.
      */
-    public val backpressureConfig: BackpressureConfig = BackpressureConfig()
+    val backpressureConfig: BackpressureConfig = BackpressureConfig()
 ) {
     
     public companion object {

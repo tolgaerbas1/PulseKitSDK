@@ -1,17 +1,23 @@
 package com.pulsekit.core.api
 
+import com.pulsekit.core.api.PulseKit.isInitialized
 import com.pulsekit.core.api.config.PulseKitConfig
 import com.pulsekit.core.api.events.EventProcessor
+import com.pulsekit.core.api.events.FlagProvider
 import com.pulsekit.core.api.events.PulseEvent
+import com.pulsekit.core.api.events.SessionInfo
+import com.pulsekit.core.api.events.PulseKitStatus
 import com.pulsekit.core.api.session.SessionManager
 import com.pulsekit.core.api.storage.EventQueue
 import com.pulsekit.core.api.flags.FeatureFlagManager
+import com.pulsekit.core.api.flags.FeatureFlag
 import com.pulsekit.core.api.flags.PulseKitFeatureFlags
 import com.pulsekit.core.api.networking.FeatureFlagService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 /**
@@ -23,13 +29,13 @@ import kotlinx.coroutines.launch
 public class PulseKitInstance internal constructor(
     public val config: PulseKitConfig,
     scope: CoroutineScope? = null
-) : com.pulsekit.core.api.events.FlagProvider {
-    
+) : FlagProvider {
+    private var initialized: Boolean = false
     private val sdkScope: CoroutineScope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     private val eventQueue: EventQueue = EventQueue(config, sdkScope)
     private val sessionManager: SessionManager = SessionManager(config, sdkScope)
-    private val eventProcessor: EventProcessor = EventProcessor(config, eventQueue, sdkScope, this)
+    private val eventProcessor: EventProcessor = EventProcessor.create(config, eventQueue, sdkScope, this)
     
     // Feature flag system
     private val flagManager: FeatureFlagManager = FeatureFlagManager(sdkScope)
@@ -77,28 +83,28 @@ public class PulseKitInstance internal constructor(
     /**
      * Get the current value of a boolean flag.
      */
-    internal fun getBooleanFlag(flag: PulseKitFeatureFlags): Boolean {
+    override fun getBooleanFlag(flag: FeatureFlag): Boolean {
         return flagManager.getBooleanFlag(flag)
     }
     
     /**
      * Get the current value of an integer flag.
      */
-    internal fun getIntegerFlag(flag: PulseKitFeatureFlags): Long {
+    override fun getIntegerFlag(flag: FeatureFlag): Long {
         return flagManager.getIntegerFlag(flag)
     }
     
     /**
      * Get the current value of a double flag.
      */
-    internal fun getDoubleFlag(flag: PulseKitFeatureFlags): Double {
+    override fun getDoubleFlag(flag: FeatureFlag): Double {
         return flagManager.getDoubleFlag(flag)
     }
     
     /**
      * Get the current value of a string flag.
      */
-    internal fun getStringFlag(flag: PulseKitFeatureFlags): String {
+    override fun getStringFlag(flag: FeatureFlag): String {
         return flagManager.getStringFlag(flag)
     }
     
@@ -120,7 +126,7 @@ public class PulseKitInstance internal constructor(
      * 
      * @return Current session data, or null if no active session
      */
-    public fun getCurrentSession(): SessionInfo? = sessionManager.getCurrentSession()
+    public fun getCurrentSession(): com.pulsekit.core.api.events.SessionInfo? = sessionManager.getCurrentSessionInfo()
     
     /**
      * Manually start a new session.
@@ -157,13 +163,11 @@ public class PulseKitInstance internal constructor(
      * Useful for debugging and monitoring SDK health.
      */
     public fun getStatus(): PulseKitStatus {
-        return PulseKitStatus(
-            isInitialized = true,
-            config = config,
-            sessionInfo = getCurrentSession(),
-            queuedEventCount = eventQueue.size(),
-            activeFeatureFlags = flagManager.getActiveExperimentalFlags()
-        )
+        return if (isInitialized) {
+            PulseKitStatus.READY
+        } else {
+            PulseKitStatus.INITIALIZING
+        }
     }
     
     /**

@@ -3,12 +3,25 @@ package com.pulsekit.core.api.backpressure
 import kotlinx.datetime.Instant
 
 /**
+ * Simplified metrics data structure.
+ */
+data class SimplifiedMetrics(
+    val memoryDroppedCount: Long,
+    val diskDroppedCount: Long,
+    val priorityDroppedCount: Long,
+    val lastDropReason: String?,
+    val lastDropTime: Instant?,
+    val memoryUtilization: Double,
+    val diskUtilization: Double
+)
+
+/**
  * Simplified metrics for internal debugging and monitoring.
  * 
  * This focuses on essential metrics needed for debugging
  * without overengineering the telemetry SDK.
  */
-internal class SimplifiedMetrics {
+internal class SimplifiedMetricsCollector {
     
     private var memoryDroppedCount: Long = 0
     private var diskDroppedCount: Long = 0
@@ -61,8 +74,8 @@ internal class SimplifiedMetrics {
     /**
      * Get current metrics.
      */
-    fun getMetrics(): SimplifiedMetricsData {
-        return SimplifiedMetricsData(
+    fun getMetrics(): SimplifiedMetrics {
+        return SimplifiedMetrics(
             memoryDroppedCount = memoryDroppedCount,
             diskDroppedCount = diskDroppedCount,
             priorityDroppedCount = priorityDroppedCount,
@@ -86,16 +99,3 @@ internal class SimplifiedMetrics {
         diskUtilization = 0.0
     }
 }
-
-/**
- * Simplified metrics data structure.
- */
-internal data class SimplifiedMetricsData(
-    val memoryDroppedCount: Long,
-    val diskDroppedCount: Long,
-    val priorityDroppedCount: Long,
-    val lastDropReason: String?,
-    val lastDropTime: Instant?,
-    val memoryUtilization: Double,
-    val diskUtilization: Double
-)

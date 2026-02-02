@@ -1,42 +1,37 @@
 package com.pulsekit.core.api.storage
 
 import com.pulsekit.core.api.events.CustomEvent
+import com.pulsekit.core.api.events.EngagementAction
 import com.pulsekit.core.api.events.EngagementEvent
 import com.pulsekit.core.api.events.ErrorEvent
+import com.pulsekit.core.api.events.ErrorType
+import com.pulsekit.core.api.events.LifecycleAction
 import com.pulsekit.core.api.events.LifecycleEvent
 import com.pulsekit.core.api.events.PerformanceEvent
 import com.pulsekit.core.api.events.PulseEvent
+import com.pulsekit.core.api.events.SessionAction
 import com.pulsekit.core.api.events.SessionEvent
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.buildClassSerialDescriptor
-import kotlinx.serialization.descriptors.element
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+
+private val json = Json {
+    ignoreUnknownKeys = true
+    encodeDefaults = true
+    isLenient = true
+}
 
 /**
  * Serializer for PulseEvent types using kotlinx.serialization.
- * 
+ *
  * This handles the serialization and deserialization of events for
  * disk storage, maintaining type safety and all event properties.
  */
 internal object EventSerializer {
-    
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-        isLenient = true
-    }
-    
+
     /**
      * Serialize a PulseEvent to JSON string.
      */
@@ -188,7 +183,7 @@ private data class EngagementEventData(
         return EngagementEvent(
             action = EngagementAction.valueOf(action),
             target = target,
-            duration = duration?.let { kotlin.time.Duration.Companion.milliseconds(it) },
+            duration = duration?.milliseconds,
             metadata = metadata
         )
     }

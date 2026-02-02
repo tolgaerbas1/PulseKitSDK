@@ -125,7 +125,11 @@ public enum class EngagementAction {
     FOCUS,
     BLUR,
     SELECT,
-    DESELECT
+    DESELECT,
+    ERROR,
+    CRASH,
+    SESSION_START,
+    SESSION_END
 }
 
 /**
@@ -163,6 +167,47 @@ public enum class SessionAction {
     TIMEOUT,
     CRASH,
     RESUME
+}
+
+/**
+ * Create a copy of a PulseEvent with updated metadata.
+ */
+public fun PulseEvent.withMetadata(metadata: Map<String, String>): PulseEvent = when (this) {
+    is CustomEvent -> CustomEvent(
+        eventName = eventName,
+        metadata = metadata,
+        value = value,
+        category = category
+    )
+    is EngagementEvent -> EngagementEvent(
+        action = action,
+        target = target,
+        duration = duration,
+        metadata = metadata
+    )
+    is PerformanceEvent -> PerformanceEvent(
+        metric = metric,
+        value = value,
+        unit = unit,
+        metadata = metadata
+    )
+    is ErrorEvent -> ErrorEvent(
+        errorType = errorType,
+        message = message,
+        stackTrace = stackTrace,
+        isFatal = isFatal,
+        metadata = metadata
+    )
+    is LifecycleEvent -> LifecycleEvent(
+        action = action,
+        component = component,
+        metadata = metadata
+    )
+    is SessionEvent -> SessionEvent(
+        action = action,
+        sessionId = sessionId,
+        metadata = metadata
+    )
 }
 
 /**

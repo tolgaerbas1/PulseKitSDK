@@ -1,7 +1,8 @@
 package com.pulsekit.core.api.backpressure
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import com.pulsekit.core.api.events.PulseEvent
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 /**
  * Simplified backpressure manager for queue overflow handling.
@@ -12,27 +13,27 @@ import kotlinx.coroutines.launch
  * - Preserves critical events
  */
 internal class SimplifiedBackpressureManager(
-    private val config: com.pulsekit.core.api.backpressure.BackpressureConfig,
-    private val metrics: SimplifiedMetrics
+    private val config: BackpressureConfig,
+    private val metrics: SimplifiedMetricsCollector
 ) {
     
     /**
      * Apply backpressure to a queue when it exceeds capacity.
      */
     fun applyBackpressure(
-        queue: MutableList<PriorityEvent>,
+        queue: MutableList<SimplifiedPriorityEvent>,
         capacity: Int,
         queueType: String
     ): Int {
         val eventsToDrop = queue.size - capacity
         if (eventsToDrop <= 0) return 0
-        
+
         val droppedCount = when (config.dropPolicy) {
-            com.pulsekit.core.api.backpressure.DropPolicy.DROP_OLDEST -> dropOldest(queue, eventsToDrop)
-            com.pulsekit.core.api.backpressure.DropPolicy.DROP_NEWEST -> dropNewest(queue, eventsToDrop)
-            com.pulsekit.core.api.backpressure.DropPolicy.DROP_LOW_PRIORITY -> dropLowPriority(queue, eventsToDrop)
+            DropPolicy.DROP_OLDEST -> dropOldest(queue, eventsToDrop)
+            DropPolicy.DROP_NEWEST -> dropNewest(queue, eventsToDrop)
+            DropPolicy.DROP_LOW_PRIORITY -> dropLowPriority(queue, eventsToDrop)
         }
-        
+
         metrics.recordMemoryDrop(droppedCount, "queue_overflow")
         return droppedCount
     }
@@ -40,12 +41,11 @@ internal class SimplifiedBackpressureManager(
     /**
      * Drop oldest events from the queue.
      */
-    private fun dropOldest(queue: MutableList<PriorityEvent>, count: Int): Int {
-        // Sort by timestamp (oldest first) and drop the oldest
+    private fun dropOldest(queue: MutableList<SimplifiedPriorityEvent>, count: Int): Int {
         queue.sortBy { it.timestamp }
         repeat(count) {
             if (queue.isNotEmpty()) {
-                queue.removeAt(0)
+                queue.removeFirstOrNull()
             }
         }
         return count
@@ -54,12 +54,11 @@ internal class SimplifiedBackpressureManager(
     /**
      * Drop newest events from the queue.
      */
-    private fun dropNewest(queue: MutableList<PriorityEvent>, count: Int): Int {
-        // Sort by timestamp (newest first) and drop the newest
+    private fun dropNewest(queue: MutableList<SimplifiedPriorityEvent>, count: Int): Int {
         queue.sortByDescending { it.timestamp }
         repeat(count) {
             if (queue.isNotEmpty()) {
-                queue.removeAt(0)
+                queue.removeFirstOrNull()
             }
         }
         return count
@@ -68,7 +67,7 @@ internal class SimplifiedBackpressureManager(
     /**
      * Drop lowest priority events from the queue.
      */
-    private fun dropLowPriority(queue: MutableList<PriorityEvent>, count: Int): Int {
+    private fun dropLowPriority(queue: MutableList<SimplifiedPriorityEvent>, count: Int): Int {
         // Sort by priority (lowest first) then by timestamp (oldest first)
         queue.sortWith(
             compareBy<SimplifiedPriorityEvent> { it.priority.value }
@@ -110,13 +109,18 @@ internal class SimplifiedBackpressureManager(
     ) {
         metrics.updateUtilization(memorySize, memoryCapacity, diskSize, diskCapacity)
     }
+    
+    fun reset() {
+        metrics.reset()
+    }
 }
 
 /**
  * Simplified priority event wrapper.
  */
-internal data class SimplifiedPriorityEvent(
-    val event: com.pulsekit.core.api.events.PulseEvent,
+data class SimplifiedPriorityEvent(
+    val event: PulseEvent,
     val priority: EventPriority,
-    val timestamp: kotlinx.datetime.Instant = kotlinx.datetime.Clock.System.now()
+    val timestamp: Instant = Clock.System.now(),
+    var retryCount: Int = 0
 )

@@ -8,6 +8,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlin.plus
+import kotlin.toString
 
 /**
  * Processes events and manages the event pipeline.
@@ -15,7 +17,7 @@ import kotlinx.coroutines.flow.onEach
  * This class handles the core event processing logic, including
  * validation, enrichment, and queuing, with feature flag support.
  */
-public class EventProcessor(
+public class EventProcessor private constructor(
     private val config: PulseKitConfig,
     private val eventQueue: EventQueue,
     private val scope: CoroutineScope,
@@ -26,6 +28,17 @@ public class EventProcessor(
     
     init {
         start()
+    }
+    
+    companion object {
+        fun create(
+            config: PulseKitConfig,
+            eventQueue: EventQueue,
+            scope: CoroutineScope,
+            flagProvider: FlagProvider
+        ): EventProcessor {
+            return EventProcessor(config, eventQueue, scope, flagProvider)
+        }
     }
     
     /**
@@ -41,7 +54,7 @@ public class EventProcessor(
             processEventWithFlags(enrichedEvent)
         } catch (e: PulseKitError) {
             // Re-throw PulseKit errors as-is
-            throw e
+            throw e as Throwable
         } catch (e: Exception) {
             throw PulseKitError.Event.ProcessingFailed(
                 message = "Unexpected error processing event: ${e.message}",
@@ -87,10 +100,20 @@ public class EventProcessor(
      * Process an event with feature flag support.
      */
     private fun processEventWithFlags(event: PulseEvent) {
-        // Apply feature flag-based behavior changes
-        val processedEvent = applyFeatureFlags(event)
-        
-        // Enqueue the processed event
+        val shouldCompress = flagProvider.getBooleanFlag(PulseKitFeatureFlags.EVENT_COMPRESSION)
+        val maxBatchSize = flagProvider.getIntegerFlag(PulseKitFeatureFlags.EVENT_BATCH_SIZE)
+        val useExperimentalRetry = flagProvider.getBooleanFlag(PulseKitFeatureFlags.EXPERIMENTAL_RETRY_LOGIC)
+        val deduplicateEvents = flagProvider.getBooleanFlag(PulseKitFeatureFlags.EVENT_DEDUPLICATION)
+
+        val augmentedMetadata = event.metadata + mapOf(
+            "compressed" to shouldCompress.toString(),
+            "max_batch_size" to maxBatchSize.toString(),
+            "experimental_retry" to useExperimentalRetry.toString(),
+            "deduplicate" to deduplicateEvents.toString()
+        )
+
+        val processedEvent = event.withMetadata(augmentedMetadata)
+
         eventQueue.enqueue(processedEvent)
     }
     
@@ -110,68 +133,14 @@ public class EventProcessor(
         // Apply event deduplication
         val deduplicateEvents = flagProvider.getBooleanFlag(PulseKitFeatureFlags.EVENT_DEDUPLICATION)
         
-        return when (event) {
-            is CustomEvent -> {
-                event.copy(
-                    metadata = event.metadata + mapOf(
-                        "compressed" to shouldCompress.toString(),
-                        "max_batch_size" to maxBatchSize.toString(),
-                        "experimental_retry" to useExperimentalRetry.toString(),
-                        "deduplicate" to deduplicateEvents.toString()
-                    )
-                )
-            }
-            is EngagementEvent -> {
-                event.copy(
-                    metadata = event.metadata + mapOf(
-                        "compressed" to shouldCompress.toString(),
-                        "max_batch_size" to maxBatchSize.toString(),
-                        "experimental_retry" to useExperimentalRetry.toString(),
-                        "deduplicate" to deduplicateEvents.toString()
-                    )
-                )
-            }
-            is PerformanceEvent -> {
-                event.copy(
-                    metadata = event.metadata + mapOf(
-                        "compressed" to shouldCompress.toString(),
-                        "max_batch_size" to maxBatchSize.toString(),
-                        "experimental_retry" to useExperimentalRetry.toString(),
-                        "deduplicate" to deduplicateEvents.toString()
-                    )
-                )
-            }
-            is ErrorEvent -> {
-                event.copy(
-                    metadata = event.metadata + mapOf(
-                        "compressed" to shouldCompress.toString(),
-                        "max_batch_size" to maxBatchSize.toString(),
-                        "experimental_retry" to useExperimentalRetry.toString(),
-                        "deduplicate" to deduplicateEvents.toString()
-                    )
-                )
-            }
-            is LifecycleEvent -> {
-                event.copy(
-                    metadata = event.metadata + mapOf(
-                        "compressed" to shouldCompress.toString(),
-                        "max_batch_size" to maxBatchSize.toString(),
-                        "experimental_retry" to useExperimentalRetry.toString(),
-                        "deduplicate" to deduplicateEvents.toString()
-                    )
-                )
-            }
-            is SessionEvent -> {
-                event.copy(
-                    metadata = event.metadata + mapOf(
-                        "compressed" to shouldCompress.toString(),
-                        "max_batch_size" to maxBatchSize.toString(),
-                        "experimental_retry" to useExperimentalRetry.toString(),
-                        "deduplicate" to deduplicateEvents.toString()
-                    )
-                )
-            }
-        }
+        return event.withMetadata(
+            event.metadata + mapOf(
+                "compressed" to shouldCompress.toString(),
+                "max_batch_size" to maxBatchSize.toString(),
+                "experimental_retry" to useExperimentalRetry.toString(),
+                "deduplicate" to deduplicateEvents.toString()
+            )
+        )
     }
     
     /**
@@ -219,31 +188,19 @@ public class EventProcessor(
      * Enrich an event with additional context.
      */
     private fun enrichEvent(event: PulseEvent): PulseEvent {
-        // Add global metadata
         val enrichedMetadata = event.metadata.toMutableMap()
         enrichedMetadata.putAll(config.globalMetadata)
-        
-        // Add feature flag metadata
         enrichedMetadata.putAll(
-            "feature_flags_enabled" to "true",
-            "compression_enabled" to flagProvider.getBooleanFlag(PulseKitFeatureFlags.EVENT_COMPRESSION).toString(),
-            "batch_size" to flagProvider.getIntegerFlag(PulseKitFeatureFlags.EVENT_BATCH_SIZE).toString(),
-            "retry_logic" to flagProvider.getBooleanFlag(PulseKitFeatureFlags.EXPONENTIAL_BACKOFF).toString(),
-            "offline_queueing" to flagProvider.getBooleanFlag(PulseKitFeatureFlags.OFFLINE_QUEUEING).toString()
+            mapOf(
+                "feature_flags_enabled" to "true",
+                "compression_enabled" to flagProvider.getBooleanFlag(PulseKitFeatureFlags.EVENT_COMPRESSION).toString(),
+                "batch_size" to flagProvider.getIntegerFlag(PulseKitFeatureFlags.EVENT_BATCH_SIZE).toString(),
+                "retry_logic" to flagProvider.getBooleanFlag(PulseKitFeatureFlags.EXPONENTIAL_BACKOFF).toString(),
+                "offline_queueing" to flagProvider.getBooleanFlag(PulseKitFeatureFlags.OFFLINE_QUEUEING).toString()
+            )
         )
-        
-        // TODO: Add session information
-        // TODO: Add device information
-        // TODO: Add app version information
-        
-        return when (event) {
-            is CustomEvent -> event.copy(metadata = enrichedMetadata)
-            is EngagementEvent -> event.copy(metadata = enrichedMetadata)
-            is LifecycleEvent -> event.copy(metadata = enrichedMetadata)
-            is PerformanceEvent -> event.copy(metadata = enrichedMetadata)
-            is ErrorEvent -> event.copy(metadata = enrichedMetadata)
-            is SessionEvent -> event.copy(metadata = enrichedMetadata)
-        }
+
+        return event.withMetadata(enrichedMetadata)
     }
 }
 
@@ -252,7 +209,7 @@ public class EventProcessor(
  * 
  * This decouples the flag system from the rest of the SDK.
  */
-internal interface FlagProvider {
+interface FlagProvider {
     fun getBooleanFlag(flag: com.pulsekit.core.api.flags.FeatureFlag): Boolean
     fun getIntegerFlag(flag: com.pulsekit.core.api.flags.FeatureFlag): Long
     fun getDoubleFlag(flag: com.pulsekit.core.api.flags.FeatureFlag): Double

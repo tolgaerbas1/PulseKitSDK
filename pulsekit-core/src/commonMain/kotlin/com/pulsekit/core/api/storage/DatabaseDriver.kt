@@ -1,6 +1,7 @@
 package com.pulsekit.core.api.storage
 
 import kotlinx.coroutines.flow.Flow
+import kotlin.time.Duration
 
 /**
  * Platform-agnostic database driver interface.
@@ -105,7 +106,7 @@ internal data class DatabaseStats(
     val totalEvents: Int,
     val expiredEvents: Int,
     val databaseSizeBytes: Long,
-    val oldestEventAge: kotlinx.datetime.Duration?,
-    val newestEventAge: kotlinx.datetime.Duration?,
+    val oldestEventAge: Duration?,
+    val newestEventAge: Duration?,
     val averageRetryCount: Double
 )

@@ -3,7 +3,7 @@ package com.pulsekit.sample
 import android.app.Application
 import com.pulsekit.android.PulseKitAndroid
 import com.pulsekit.android.lifecycle.SessionLifecycleListener
-import com.pulsekit.core.api.PulseKitConfig
+import com.pulsekit.core.api.config.PulseKitConfig
 import kotlin.time.Duration.Companion.minutes
 
 /**

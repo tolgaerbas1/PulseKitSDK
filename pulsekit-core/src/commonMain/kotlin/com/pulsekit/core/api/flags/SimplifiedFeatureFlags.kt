@@ -89,7 +89,7 @@ internal class SimplifiedFeatureFlags(
         flags.clear()
         flags.putAll(serverFlags)
         lastRefresh = System.currentTimeMillis()
-        lastRefreshJob?.cancel()
+        refreshJob?.cancel()
         startPeriodicRefresh()
     }
     

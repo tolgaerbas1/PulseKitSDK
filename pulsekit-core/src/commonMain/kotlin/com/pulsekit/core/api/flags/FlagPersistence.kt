@@ -12,10 +12,20 @@ import kotlinx.serialization.json.Json
  * This handles optional disk persistence of feature flag values
  * to maintain state across app restarts.
  */
-internal class FlagPersistence(
+class FlagPersistence private constructor(
     private val scope: CoroutineScope,
-    private val storage: FlagStorage
+    private val storage: FlagStorage,
+    @Suppress("UNUSED_PARAMETER") private val _privateInit: Unit
 ) {
+
+    constructor(
+        scope: CoroutineScope,
+        storage: FlagStorage
+    ) : this(
+        scope = scope,
+        storage = storage,
+        _privateInit = Unit
+    )
     
     private val json = Json {
         ignoreUnknownKeys = true
@@ -73,7 +83,7 @@ internal class FlagPersistence(
 /**
  * Storage abstraction for feature flags.
  */
-internal interface FlagStorage {
+interface FlagStorage {
     suspend fun save(data: String)
     suspend fun load(): String?
     suspend fun clear()
@@ -84,7 +94,7 @@ internal interface FlagStorage {
  * 
  * This is used when disk persistence is disabled.
  */
-internal class InMemoryFlagStorage : FlagStorage {
+class InMemoryFlagStorage : FlagStorage {
     
     private var data: String? = null
     
@@ -106,7 +116,7 @@ internal class InMemoryFlagStorage : FlagStorage {
  * 
  * This uses platform-specific storage implementations.
  */
-internal class DiskFlagStorage(
+class DiskFlagStorage(
     private val platformStorage: PlatformFlagStorage
 ) : FlagStorage {
     
@@ -126,7 +136,7 @@ internal class DiskFlagStorage(
 /**
  * Platform-specific storage abstraction.
  */
-internal interface PlatformFlagStorage {
+interface PlatformFlagStorage {
     suspend fun save(key: String, data: String)
     suspend fun load(key: String): String?
     suspend fun clear(key: String)

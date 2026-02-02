@@ -1,5 +1,6 @@
 package com.pulsekit.core.api.flags
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 
 /**
@@ -9,7 +10,7 @@ import kotlinx.serialization.Serializable
  * They allow remote control of SDK behavior without API changes.
  */
 @Serializable
-internal data class FeatureFlag(
+data class FeatureFlag(
     /**
      * Unique identifier for the flag.
      */
@@ -18,7 +19,7 @@ internal data class FeatureFlag(
     /**
      * Default value when server is unavailable.
      */
-    val defaultValue: FlagValue,
+    @Contextual val defaultValue: FlagValue,
     
     /**
      * Description of what the flag controls.
@@ -39,7 +40,7 @@ internal data class FeatureFlag(
 /**
  * Types of feature flag values.
  */
-internal enum class FlagType {
+enum class FlagType {
     BOOLEAN,
     INTEGER,
     DOUBLE,
@@ -49,10 +50,18 @@ internal enum class FlagType {
 /**
  * Value types for feature flags.
  */
-internal sealed class FlagValue {
+@Serializable
+sealed class FlagValue {
+    @Serializable
     data class BooleanValue(val value: Boolean) : FlagValue()
+
+    @Serializable
     data class IntegerValue(val value: Long) : FlagValue()
+
+    @Serializable
     data class DoubleValue(val value: Double) : FlagValue()
+
+    @Serializable
     data class StringValue(val value: String) : FlagValue()
 }
 
@@ -61,7 +70,7 @@ internal sealed class FlagValue {
  * 
  * These flags control internal SDK behavior and are not exposed to users.
  */
-internal object PulseKitFeatureFlags {
+object PulseKitFeatureFlags {
     
     /**
      * Controls the maximum batch size for event sending.

@@ -15,7 +15,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runOnUiThread
 
 /**
  * Main activity demonstrating PulseKit event tracking.
@@ -171,12 +170,13 @@ class MainActivity : AppCompatActivity() {
         val message = if (sessionInfo != null && androidSessionInfo != null) {
             """
             Session Active: ${sessionInfo.isActive}
-            Session ID: ${sessionInfo.sessionId.value}
-            Duration: ${sessionInfo.duration}
+            Session ID: ${sessionInfo.sessionId}
+            Start Time: ${sessionInfo.startTime}
+            End Time: ${sessionInfo.endTime ?: "-"}
             App Foreground: ${PulseKitAndroid.isAppInForeground()}
             Session Paused: ${androidSessionInfo.isPaused}
             Last Activity: ${androidSessionInfo.lastActivityTime}
-            Queued Events: ${status.queuedEventCount}
+            SDK Status: $status
             """.trimIndent()
         } else {
             """
@@ -216,8 +216,7 @@ class MainActivity : AppCompatActivity() {
             val message = """
             Backpressure Demo Complete!
             Generated 1500 events
-            Current queue size: ${status.queuedEventCount}
-            Active experimental flags: ${status.activeFeatureFlags.joinToString(", ")}
+            SDK Status: $status
             """.trimIndent()
             
             runOnUiThread {

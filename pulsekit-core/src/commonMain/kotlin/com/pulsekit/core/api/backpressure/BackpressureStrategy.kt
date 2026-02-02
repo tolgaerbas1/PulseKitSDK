@@ -12,7 +12,7 @@ import com.pulsekit.core.api.events.PulseEvent
 /**
  * Drop policies for handling queue overflow.
  */
-internal enum class DropPolicy {
+enum class DropPolicy {
     /**
      * Drop the oldest events first (default).
      * 
@@ -43,7 +43,7 @@ internal enum class DropPolicy {
  * 
  * Higher priority events are less likely to be dropped under backpressure.
  */
-internal enum class EventPriority {
+enum class EventPriority {
     /**
      * Critical events - never dropped unless absolutely necessary.
      * Examples: Error events, crash reports, security events.
@@ -78,7 +78,7 @@ internal enum class EventPriority {
 /**
  * Backpressure configuration for queue management.
  */
-internal data class BackpressureConfig(
+data class BackpressureConfig(
     /**
      * Maximum number of events in memory queue.
      * Default: 1000 events

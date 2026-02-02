@@ -19,7 +19,7 @@ import kotlin.time.Duration.Companion.minutes
  * 
  * This is completely internal to the SDK and not exposed to users.
  */
-internal class FeatureFlagManager(
+class FeatureFlagManager(
     private val scope: CoroutineScope
 ) {
     
@@ -260,7 +260,7 @@ internal class FeatureFlagManager(
 /**
  * Status of flag fetching operations.
  */
-internal enum class FetchStatus {
+enum class FetchStatus {
     NOT_FETCHED,
     FETCHING,
     SUCCESS,

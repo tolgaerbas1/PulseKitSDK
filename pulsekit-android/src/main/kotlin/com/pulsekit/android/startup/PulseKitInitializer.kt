@@ -3,7 +3,7 @@ package com.pulsekit.android.startup
 import android.content.Context
 import androidx.startup.Initializer
 import com.pulsekit.android.PulseKitAndroid
-import com.pulsekit.core.api.PulseKitConfig
+import com.pulsekit.core.api.config.PulseKitConfig
 
 /**
  * AndroidX Startup initializer for automatic PulseKit initialization.

@@ -1,14 +1,11 @@
 package com.pulsekit.core.api.session
 
 import com.pulsekit.core.api.config.PulseKitConfig
-import com.pulsekit.core.api.events.SessionEvent
-import com.pulsekit.core.api.events.SessionAction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.time.Duration
 
 /**
  * Manages user sessions with automatic timeout handling.
@@ -43,7 +40,14 @@ public class SessionManager(
         currentSession = session
         startTimeoutTimer()
         
-        sessionListener?.onSessionStarted(session)
+        sessionListener?.onSessionStarted(
+            com.pulsekit.core.api.events.SessionInfo(
+                sessionId = session.id.value,
+                startTime = session.startTime.toEpochMilliseconds(),
+                endTime = session.endTime?.toEpochMilliseconds(),
+                isActive = session.endTime == null
+            )
+        )
         
         // TODO: Track session start event
         // eventProcessor.process(SessionEvent(SessionAction.START, sessionId))
@@ -62,7 +66,14 @@ public class SessionManager(
                 duration = endTime - session.startTime
             )
             
-            sessionListener?.onSessionEnded(completedSession)
+            sessionListener?.onSessionEnded(
+                com.pulsekit.core.api.events.SessionInfo(
+                    sessionId = completedSession.id.value,
+                    startTime = completedSession.startTime.toEpochMilliseconds(),
+                    endTime = completedSession.endTime?.toEpochMilliseconds(),
+                    isActive = completedSession.endTime == null
+                )
+            )
             
             // TODO: Track session end event
             // eventProcessor.process(SessionEvent(SessionAction.END, session.id))
@@ -74,16 +85,13 @@ public class SessionManager(
     /**
      * Get information about the current session.
      */
-    public fun getCurrentSession(): SessionInfo? {
+    public fun getCurrentSessionInfo(): com.pulsekit.core.api.events.SessionInfo? {
         return currentSession?.let { session ->
-            val now = kotlinx.datetime.Clock.System.now()
-            SessionInfo(
-                sessionId = session.id,
-                startTime = session.startTime,
-                endTime = session.endTime,
-                duration = session.endTime?.let { it - session.startTime } ?: now - session.startTime,
-                isActive = session.endTime == null,
-                metadata = session.metadata
+            com.pulsekit.core.api.events.SessionInfo(
+                sessionId = session.id.value,
+                startTime = session.startTime.toEpochMilliseconds(),
+                endTime = session.endTime?.toEpochMilliseconds(),
+                isActive = session.endTime == null
             )
         }
     }
@@ -121,7 +129,14 @@ public class SessionManager(
                 delay(config.sessionTimeout)
                 if (isActive && currentSession != null) {
                     // Session timed out
-                    sessionListener?.onSessionTimedOut(currentSession!!)
+                    sessionListener?.onSessionTimedOut(
+                        com.pulsekit.core.api.events.SessionInfo(
+                            sessionId = currentSession!!.id.value,
+                            startTime = currentSession!!.startTime.toEpochMilliseconds(),
+                            endTime = currentSession!!.endTime?.toEpochMilliseconds(),
+                            isActive = currentSession!!.endTime == null
+                        )
+                    )
                     endCurrentSession()
                 }
             }
@@ -137,7 +152,7 @@ public class SessionManager(
 /**
  * Internal session data structure.
  */
-private data class Session(
+data class Session(
     val id: SessionId,
     val startTime: kotlinx.datetime.Instant,
     val endTime: kotlinx.datetime.Instant? = null,
@@ -178,15 +193,15 @@ public interface SessionListener {
     /**
      * Called when a new session starts.
      */
-    public fun onSessionStarted(session: SessionInfo) {}
+    public fun onSessionStarted(session: com.pulsekit.core.api.events.SessionInfo) {}
     
     /**
      * Called when a session ends normally.
      */
-    public fun onSessionEnded(session: SessionInfo) {}
+    public fun onSessionEnded(session: com.pulsekit.core.api.events.SessionInfo) {}
     
     /**
      * Called when a session times out due to inactivity.
      */
-    public fun onSessionTimedOut(session: SessionInfo) {}
+    public fun onSessionTimedOut(session: com.pulsekit.core.api.events.SessionInfo) {}
 }

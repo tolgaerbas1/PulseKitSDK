@@ -7,7 +7,9 @@ import com.pulsekit.core.api.backpressure.SimplifiedBackpressureManager
 import com.pulsekit.core.api.backpressure.SimplifiedPriorityCalculator
 import com.pulsekit.core.api.backpressure.EventPriority
 import com.pulsekit.core.api.backpressure.SimplifiedPriorityEvent
-import com.pulsekit.core.api.backpressure.SimplifiedMetrics
+import com.pulsekit.core.api.backpressure.SimplifiedMetricsCollector
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -35,7 +37,7 @@ public class EventQueue(
     // Simplified backpressure management
     private val backpressureManager = SimplifiedBackpressureManager(
         config.backpressureConfig,
-        SimplifiedMetrics()
+        SimplifiedMetricsCollector()
     )
     
     /**
@@ -242,9 +244,9 @@ public class EventQueue(
         val eventsByAge = events.groupBy { priorityEvent ->
             val age = now - priorityEvent.timestamp
             when {
-                age < kotlin.time.Duration.Companion.minutes(1) -> "fresh"
-                age < kotlin.time.Duration.Companion.minutes(5) -> "recent"
-                age < kotlin.time.Duration.Companion.minutes(30) -> "old"
+                age < 1.minutes -> "fresh"
+                age < 5.minutes -> "recent"
+                age < 30.minutes -> "old"
                 else -> "stale"
             }
         }
@@ -266,7 +268,7 @@ public class EventQueue(
     /**
      * Get backpressure metrics.
      */
-    public fun getBackpressureMetrics(): SimplifiedMetricsData {
+    public fun getBackpressureMetrics(): com.pulsekit.core.api.backpressure.SimplifiedMetrics {
         return backpressureManager.getMetrics()
     }
 }
@@ -291,6 +293,6 @@ public data class QueueStats(
     public val eventsByPriority: Map<EventPriority, Int>,
     public val oldestEventAge: kotlin.time.Duration?,
     public val newestEventAge: kotlin.time.Duration?,
-    public val backpressureMetrics: SimplifiedMetricsData,
+    public val backpressureMetrics: com.pulsekit.core.api.backpressure.SimplifiedMetrics,
     public val isBackpressureActive: Boolean
 )

@@ -8,8 +8,9 @@ dokka = "1.9.10"
 maven-publish = "0.25.3"
 sqlite = "2.4.0"
 kotlinx-serialization = "1.6.2"
-japicmp = "0.18.3"
+japicmp = "0.4.1"
 kotlinx-datetime = "0.4.0"
+japicmp-gradle = "0.3.1"
 
 [libraries]
 # Kotlin
@@ -35,6 +36,7 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 
 # API Compatibility
 japicmp = { group = "me.champeau.japicmp", name = "japicmp", version.ref = "japicmp" }
+japicmp-gradle = { group = "me.champeau.japicmp", name = "japicmp-gradle", version.ref = "japicmp-gradle" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "android-gradle-plugin" }

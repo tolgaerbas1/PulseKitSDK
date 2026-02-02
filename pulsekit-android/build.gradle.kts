@@ -46,13 +46,14 @@ android {
 }
 
 dependencies {
-    implementation(project(":pulsekit-core"))
+    api(project(":pulsekit-core"))
     
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.lifecycle.common)
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.startup.runtime)
+    implementation(libs.kotlinx.serialization.json)
     
     // Feature flag dependencies
     // japicmp is a build-time tool; do not add as an app/library runtime dependency

@@ -6,22 +6,32 @@ package com.pulsekit.core.api.errors
  * This ensures type-safe error handling and prevents
  * unexpected error types from being thrown.
  */
-public sealed interface PulseKitError {
-    
-    /**
-     * Human-readable error message.
-     */
-    public val message: String
-    
-    /**
-     * Optional cause of this error.
-     */
-    public val cause: Throwable?
-    
-    /**
-     * Error code for programmatic handling.
-     */
-    public val code: String
+public sealed class PulseKitError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : Throwable(message, cause) {
+
+    public sealed class Event(
+        message: String? = null,
+        cause: Throwable? = null
+    ) : PulseKitError(message, cause) {
+
+        public class ProcessingFailed(
+            message: String? = "Event processing failed",
+            cause: Throwable? = null
+        ) : Event(message, cause)
+
+        public class EventTooLarge(
+            public val eventSize: Int,
+            public val maxSize: Int
+        ) : Event("Event too large: $eventSize > $maxSize")
+
+        public class InvalidEvent(
+            message: String
+        ) : Event(message)
+    }
+
+    // Diğer hata kategorileri gerektiğinde buraya eklenebilir
 }
 
 /**
@@ -30,8 +40,8 @@ public sealed interface PulseKitError {
 public sealed class InitializationError(
     override val message: String,
     override val cause: Throwable? = null,
-    override val code: String
-) : PulseKitError {
+    val code: String
+) : PulseKitError() {
     
     public class NotInitialized(
         override val cause: Throwable? = null
@@ -65,8 +75,8 @@ public sealed class InitializationError(
 public sealed class EventError(
     override val message: String,
     override val cause: Throwable? = null,
-    override val code: String
-) : PulseKitError {
+    val code: String
+) : PulseKitError() {
     
     public class EventTooLarge(
         public val eventSize: Int,
@@ -113,8 +123,8 @@ public sealed class EventError(
 public sealed class NetworkError(
     override val message: String,
     override val cause: Throwable? = null,
-    override val code: String
-) : PulseKitError {
+    val code: String
+) : PulseKitError() {
     
     public class NoConnection(
         override val cause: Throwable? = null
@@ -158,8 +168,8 @@ public sealed class NetworkError(
 public sealed class StorageError(
     override val message: String,
     override val cause: Throwable? = null,
-    override val code: String
-) : PulseKitError {
+    val code: String
+) : PulseKitError() {
     
     public class DiskFull(
         public val availableBytes: Long,
@@ -194,8 +204,8 @@ public sealed class StorageError(
 public sealed class SessionError(
     override val message: String,
     override val cause: Throwable? = null,
-    override val code: String
-) : PulseKitError {
+    val code: String
+) : PulseKitError() {
     
     public class SessionExpired(
         public val sessionId: String,
@@ -222,7 +232,7 @@ public sealed class SessionError(
 public class UnknownError(
     override val message: String,
     override val cause: Throwable? = null
-) : PulseKitError {
+) : PulseKitError() {
     
-    override val code: String = "UNKNOWN_ERROR"
+    val code: String = "UNKNOWN_ERROR"
 }

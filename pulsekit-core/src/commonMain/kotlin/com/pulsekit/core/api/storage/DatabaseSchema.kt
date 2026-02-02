@@ -1,6 +1,8 @@
 package com.pulsekit.core.api.storage
 
 import kotlinx.datetime.Instant
+import java.util.Collections.emptyList
+import kotlin.to
 
 /**
  * Database schema for PulseKit event persistence.
@@ -56,9 +58,7 @@ internal object DatabaseSchema {
      * Migration definitions for database version upgrades.
      */
     object Migrations {
-        val MIGRATIONS = mapOf(
-            1 to emptyList() // Initial schema
-        )
+
     }
 }
 

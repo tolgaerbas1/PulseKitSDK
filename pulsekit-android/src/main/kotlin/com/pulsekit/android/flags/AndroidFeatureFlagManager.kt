@@ -1,14 +1,11 @@
 package com.pulsekit.android.flags
 
-import com.pulsekit.core.api.flags.FeatureFlagManager
 import com.pulsekit.core.api.flags.FlagPersistence
 import com.pulsekit.core.api.flags.InMemoryFlagStorage
 import com.pulsekit.core.api.flags.DiskFlagStorage
 import com.pulsekit.core.api.flags.PlatformFlagStorage
 import com.pulsekit.android.storage.AndroidFileFlagStorage
 import com.pulsekit.core.api.networking.NetworkClient
-import com.pulsekit.core.api.networking.FeatureFlagService
-import com.pulsekit.core.api.networking.AndroidNetworkClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,11 +17,11 @@ import kotlinx.coroutines.launch
  * networking and persistence capabilities.
  */
 internal class AndroidFeatureFlagManager(
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
     private val context: android.content.Context,
     private val networkClient: NetworkClient,
     private val persistence: FlagPersistence
-) : FeatureFlagManager(scope) {
+) {
     
     init {
         // Override the refresh method to use Android-specific networking
@@ -42,7 +39,7 @@ internal class AndroidFeatureFlagManager(
     /**
      * Load persisted flags from Android storage.
      */
-    override fun loadPersistedFlags() {
+    fun loadPersistedFlags() {
         scope.launch(Dispatchers.IO) {
             try {
                 val persistedFlags = persistence.loadFlags()
@@ -73,7 +70,7 @@ internal class AndroidFeatureFlagManager(
     /**
      * Create Android-specific feature flag service.
      */
-    override fun createFlagService(): FeatureFlagService {
-        return AndroidFeatureFlagService(networkClient, this, scope)
+    fun createFlagService(): com.pulsekit.android.networking.AndroidFeatureFlagService {
+        return com.pulsekit.android.networking.AndroidFeatureFlagService(networkClient, scope)
     }
 }

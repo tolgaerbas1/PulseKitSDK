@@ -8,9 +8,13 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import kotlinx.serialization.json.double
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.longOrNull
 
 /**
  * Service for fetching feature flags from the server.
@@ -34,20 +38,10 @@ internal class FeatureFlagService(
      */
     suspend fun fetchFeatureFlags(): Result<FeatureFlagResponse> {
         return try {
-            val response = networkClient.get("/api/v1/feature-flags")
-            
-            if (response.isSuccess) {
-                val flagResponse = parseFlagResponse(response.body ?: "")
-                updateFlagManager(flagResponse)
-                Result.success(flagResponse)
-            } else {
-                val error = NetworkError(
-                    statusCode = response.statusCode,
-                    message = response.statusMessage ?: "Unknown error"
-                )
-                flagManager.handleFetchFailure(error)
-                Result.failure(error)
-            }
+            val responseBody = networkClient.get("/api/v1/feature-flags")
+            val flagResponse = parseFlagResponse(responseBody)
+            updateFlagManager(flagResponse)
+            Result.success(flagResponse)
         } catch (e: Exception) {
             flagManager.handleFetchFailure(e)
             Result.failure(e)

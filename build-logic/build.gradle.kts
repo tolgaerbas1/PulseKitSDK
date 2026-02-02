@@ -6,6 +6,7 @@ repositories {
     google()
     mavenCentral()
     gradlePluginPortal()
+    maven("https://plugins.gradle.org/m2/")
 }
 
 dependencies {
@@ -13,5 +14,5 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10")
     implementation("org.jetbrains.dokka:dokka-gradle-plugin:1.9.10")
     implementation("com.vanniktech:gradle-maven-publish-plugin:0.25.3")
-    implementation("me.champeau.japicmp:japicmp-gradle:0.18.3")
+    // implementation("me.champeau.japicmp:japicmp-gradle:0.4.1") // Temporarily disabled
 }
