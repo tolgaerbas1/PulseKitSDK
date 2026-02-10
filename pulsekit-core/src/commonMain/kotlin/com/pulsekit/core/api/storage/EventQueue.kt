@@ -8,6 +8,7 @@ import com.pulsekit.core.api.backpressure.SimplifiedPriorityCalculator
 import com.pulsekit.core.api.backpressure.EventPriority
 import com.pulsekit.core.api.backpressure.SimplifiedPriorityEvent
 import com.pulsekit.core.api.backpressure.SimplifiedMetricsCollector
+import com.pulsekit.core.api.logging.PulseKitLogger
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CoroutineScope
@@ -64,7 +65,7 @@ public class EventQueue(
             )
             
             if (config.enableDebugLogging && droppedCount > 0) {
-                println("PulseKit: Dropped $droppedCount events due to memory pressure")
+                PulseKitLogger.log("PulseKit", "Dropped $droppedCount events due to memory pressure")
             }
         }
         
@@ -112,7 +113,7 @@ public class EventQueue(
             }
             
             if (config.enableDebugLogging && expiredCount > 0) {
-                println("PulseKit: Removed $expiredCount expired events")
+                PulseKitLogger.log("PulseKit", "Removed $expiredCount expired events")
             }
         }
         
@@ -161,7 +162,7 @@ public class EventQueue(
                 // Remove event and log
                 events.removeAt(index)
                 if (config.enableDebugLogging) {
-                    println("PulseKit: Event ${event.eventId} exceeded max retries, dropping")
+                    PulseKitLogger.log("PulseKit", "Event ${event.eventId} exceeded max retries, dropping")
                 }
             } else {
                 // Update retry count

@@ -1,6 +1,7 @@
 package com.pulsekit.core.api.flags
 
 import com.pulsekit.core.api.config.PulseKitConfig
+import com.pulsekit.core.api.logging.PulseKitLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -112,7 +113,7 @@ internal class SimplifiedFeatureFlags(
         flags.putAll(defaults)
         
         if (config.enableDebugLogging) {
-            println("PulseKit: Feature flags refreshed from defaults")
+            PulseKitLogger.log("PulseKit", "Feature flags refreshed from defaults")
         }
     }
     

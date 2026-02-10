@@ -1,5 +1,6 @@
 package com.pulsekit.core.api.flags
 
+import com.pulsekit.core.api.logging.PulseKitLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -229,7 +230,7 @@ class FeatureFlagManager(
     private fun logTypeError(flag: FeatureFlag, expectedType: String, actualValue: FlagValue) {
         // This would use the SDK's logging system
         // For now, we'll just note the issue
-        println("Feature flag type error: ${flag.key} expected $expectedType but got ${actualValue::class.simpleName}")
+        PulseKitLogger.log("PulseKit.Flags", "Feature flag type error: ${flag.key} expected $expectedType but got ${actualValue::class.simpleName}")
     }
     
     /**
@@ -239,9 +240,9 @@ class FeatureFlagManager(
         // This would send telemetry about flag fetching
         // For now, we'll just log it
         if (success) {
-            println("Feature flags fetched successfully: $flagCount flags")
+            PulseKitLogger.log("PulseKit.Flags", "Feature flags fetched successfully: $flagCount flags")
         } else {
-            println("Feature flags fetch failed: ${error?.message}")
+            PulseKitLogger.log("PulseKit.Flags", "Feature flags fetch failed: ${error?.message}")
         }
     }
     

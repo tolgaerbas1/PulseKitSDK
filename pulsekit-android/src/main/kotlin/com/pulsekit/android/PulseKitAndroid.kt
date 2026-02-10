@@ -1,7 +1,9 @@
 package com.pulsekit.android
 
 import android.content.Context
+import android.util.Log
 import com.pulsekit.android.lifecycle.PulseKitLifecycleObserver
+import com.pulsekit.core.api.logging.PulseKitLogger
 import com.pulsekit.android.lifecycle.SessionLifecycleListener
 import com.pulsekit.android.storage.AndroidFileFlagStorage
 import com.pulsekit.core.api.PulseKit
@@ -54,9 +56,10 @@ public object PulseKitAndroid {
         config: PulseKitConfig = PulseKitConfig(),
         enableLifecycleObserver: Boolean = true
     ) {
+        // Use Android Log for SDK logging when running on Android
+        PulseKitLogger.init { tag, message -> Log.d(tag, message) }
         // Initialize core SDK
         val instance = PulseKit.initialize(config, CoroutineScope(Dispatchers.Default))
-        
         // Set up Android-specific integrations
         if (enableLifecycleObserver && config.enableAutoSessionManagement) {
             PulseKitLifecycleObserver.initialize(context, instance)

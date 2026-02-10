@@ -1,5 +1,6 @@
 package com.pulsekit.core.api.flags
 
+import com.pulsekit.core.api.logging.PulseKitLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,7 +43,7 @@ class FlagPersistence private constructor(
                 storage.save(serialized)
             } catch (e: Exception) {
                 // Log error but don't crash
-                println("Failed to save feature flags: ${e.message}")
+                PulseKitLogger.log("PulseKit.Flags", "Failed to save feature flags: ${e.message}")
             }
         }
     }
@@ -60,7 +61,7 @@ class FlagPersistence private constructor(
             }
         } catch (e: Exception) {
             // Log error but don't crash
-            println("Failed to load feature flags: ${e.message}")
+            PulseKitLogger.log("PulseKit.Flags", "Failed to load feature flags: ${e.message}")
             null
         }
     }
@@ -74,7 +75,7 @@ class FlagPersistence private constructor(
                 storage.clear()
             } catch (e: Exception) {
                 // Log error but don't crash
-                println("Failed to clear feature flags: ${e.message}")
+                PulseKitLogger.log("PulseKit.Flags", "Failed to clear feature flags: ${e.message}")
             }
         }
     }

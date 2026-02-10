@@ -48,12 +48,12 @@ internal class AndroidFeatureFlagManager(
                     flags.forEach { (key, value) ->
                         // This would update the internal flag values
                         // For now, we'll just log it
-                        println("Loaded persisted flag: $key = $value")
+                        com.pulsekit.core.api.logging.PulseKitLogger.log("PulseKit.Flags", "Loaded persisted flag: $key = $value")
                     }
                 }
             } catch (e: Exception) {
                 // Continue with default values if loading fails
-                println("Failed to load persisted flags: ${e.message}")
+                com.pulsekit.core.api.logging.PulseKitLogger.log("PulseKit.Flags", "Failed to load persisted flags: ${e.message}")
             }
         }
     }

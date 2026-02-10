@@ -1,0 +1,112 @@
+# PulseKit detekt config (builds upon default)
+# See: https://detekt.dev/docs/introduction/configurations
+
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+
+config:
+  validation: true
+  warnings: false
+  checkExhaustiveness: true
+
+complexity:
+  LongMethod:
+    threshold: 60
+  LongParameterList:
+    threshold: 6
+  ComplexMethod:
+    threshold: 15
+  TooManyFunctions:
+    threshold: 15
+    excludePrivateFunctions: true
+    excludeProtectedFunctions: true
+
+naming:
+  ClassNaming:
+    classPattern: '[A-Z][a-zA-Z0-9]*'
+  FunctionNaming:
+    functionPattern: '[a-z][a-zA-Z0-9]*'
+  VariableNaming:
+    variablePattern: '[a-z][A-Za-z0-9]*'
+  PackageNaming:
+    packagePattern: '[a-z]+(\.[a-z][A-Za-z0-9]*)*'
+
+style:
+  MaxLineLength:
+    maxLineLength: 120
+    excludePackageStatements: true
+    excludeImportStatements: true
+  MagicNumber:
+    active: true
+    ignoreNumbers: ['-1', '0', '1', '2', '3', '4', '5', '10', '100', '1000']
+    ignoreExtensionFunctions: true
+  ThrowingExceptionWithoutMessageOrCause:
+    active: true
+  ObjectLiteralToLambda:
+    active: true
+  UnusedPrivateMember:
+    active: true
+    ignoreOverridden: true
+  OptionalUnit:
+    active: true
+  RedundantHigherOrderMapUsage:
+    active: true
+  UseAnyOrNothingInsteadOfDeprecated:
+    active: true
+  Deprecation:
+    active: true
+  EqualsAlwaysReturnsTrueOrFalse:
+    active: true
+  ExitOutsideMain:
+    active: true
+  ThrowingNewInstanceOfSameException:
+    active: true
+  InstanceOfCheckForException:
+    active: true
+  PrintStackTrace:
+    active: true
+  RethrowCaughtException:
+    active: true
+  TooGenericExceptionCaught:
+    active: true
+    exceptionNames: ['Error', 'Exception', 'Throwable', 'RuntimeException']
+  TooGenericExceptionThrown:
+    active: true
+    exceptionNames: ['Error', 'Exception', 'Throwable', 'RuntimeException']
+
+comments:
+  CommentOverPrivateFunction:
+    active: false
+  CommentOverPrivateProperty:
+    active: false
+  UndocumentedPublicClass:
+    active: false
+  UndocumentedPublicFunction:
+    active: false
+
+potential-bugs:
+  EqualsWithHashCodeExist:
+    active: true
+  UnreachableCode:
+    active: true
+  DangerousCast:
+    active: true
+  HasPlatformType:
+    active: false
+  IgnoredReturnValue:
+    active: true
+  RedundantElse:
+    active: true
+  UnnecessaryApply:
+    active: true
+  UnnecessaryLet:
+    active: true
+  UnnecessarySafeCall:
+    active: true
+
+performance:
+  SpreadOperator:
+    active: true
+  UnnecessaryTemporaryInstantiation:
+    active: true

@@ -1,0 +1,42 @@
+---
+description: Public API and compatibility rules for PulseKit SDK
+globs: pulsekit-core/**/*.kt, pulsekit-android/**/*.kt
+alwaysApply: false
+---
+
+# Public API & Compatibility
+
+## Scope
+
+- **Public API**: All non-`internal` types and members in `com.pulsekit.core.api` and `com.pulsekit.android` (and their subpackages) are part of the supported API unless explicitly experimental or deprecated.
+- Before changing any public signature or visibility, check [docs/ApiCompatibility.md](docs/ApiCompatibility.md).
+
+## Allowed (Non-Breaking)
+
+- Adding new public classes, methods, or overloads.
+- Adding optional parameters with default values.
+- Expanding return types (e.g. covariant return).
+- Adding new exception types to `throws` (document in KDoc).
+- Internal implementation changes that do not change behavior.
+
+## Breaking (Requires Baseline + Changelog + Version Bump)
+
+- Removing or renaming public types/methods/properties.
+- Changing parameter or return types, or removing parameters.
+- Changing visibility (e.g. public → internal).
+- Changing default behavior in a way that affects callers.
+
+## Workflow
+
+1. After code changes: `./gradlew checkApiCompatibility checkBinaryCompatibility`.
+2. If breaking intentionally: `./gradlew updateApiBaselines`, document in CHANGELOG.md, bump major version.
+3. Prefer deprecation + new API over direct removal: use `@Deprecated` and `ReplaceWith` when possible.
+
+## Deprecation Example
+
+```kotlin
+@Deprecated("Use newMethod() instead", ReplaceWith("newMethod()"))
+fun oldMethod(param: String): Result = newMethod(param)
+
+fun newMethod(param: String): Result { ... }
+```
