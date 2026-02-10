@@ -14,7 +14,9 @@ import com.pulsekit.core.api.events.ErrorType
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Main activity demonstrating PulseKit event tracking.
@@ -114,30 +116,24 @@ class MainActivity : AppCompatActivity() {
     
     private fun trackPerformanceEvent() {
         val startTime = System.currentTimeMillis()
-        
-        // Simulate some work
-        Thread {
-            try {
-                Thread.sleep(100)
-                val duration = System.currentTimeMillis() - startTime
-                
-                PulseKitAndroid.instance.track(
-                    PerformanceEvent(
-                        metric = "button_click_duration",
-                        value = duration.toDouble(),
-                        unit = "ms",
-                        metadata = mapOf(
-                            "button_type" to "performance_demo",
-                            "thread_name" to Thread.currentThread().name
-                        )
+        CoroutineScope(Dispatchers.Default).launch {
+            delay(100)
+            val duration = System.currentTimeMillis() - startTime
+            PulseKitAndroid.instance.track(
+                PerformanceEvent(
+                    metric = "button_click_duration",
+                    value = duration.toDouble(),
+                    unit = "ms",
+                    metadata = mapOf(
+                        "button_type" to "performance_demo",
+                        "thread_name" to Thread.currentThread().name
                     )
                 )
-                
-                runOnUiThread { showToast("Performance event tracked (${duration}ms)") }
-            } catch (e: InterruptedException) {
-                Thread.currentThread().interrupt()
+            )
+            withContext(Dispatchers.Main) {
+                showToast("Performance event tracked (${duration}ms)")
             }
-        }.start()
+        }
     }
     
     private fun trackErrorEvent() {
@@ -218,8 +214,7 @@ class MainActivity : AppCompatActivity() {
             Generated 1500 events
             SDK Status: $status
             """.trimIndent()
-            
-            runOnUiThread {
+            withContext(Dispatchers.Main) {
                 showToast(message)
             }
         }

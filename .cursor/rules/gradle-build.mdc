@@ -1,0 +1,31 @@
+---
+description: Gradle and build-logic conventions for PulseKit
+globs: **/*.gradle.kts, build-logic/**/*
+alwaysApply: false
+---
+
+# Gradle & Build Logic
+
+## Version and Dependencies
+
+- Centralize versions and libraries in **gradle/libs.versions.toml**. Do not hardcode versions in module `build.gradle.kts`; use version catalog references (e.g. `libs.kotlin.stdlib`).
+- Use the same Kotlin and AGP versions across all modules; align with `libs.versions.toml`.
+
+## Convention Plugins
+
+- Build logic lives in **build-logic** as convention plugins. Application and library modules apply these plugins (e.g. `com.pulsekit.android.application`, `com.pulsekit.android.library`, `com.pulsekit.kotlin.mpp`) instead of duplicating configuration.
+- When adding new modules, use the existing convention plugins; extend build-logic only when a new pattern is needed.
+- Plugin IDs and properties are defined under `build-logic/src/main/resources/META-INF/gradle-plugins/`.
+
+## Module Layout
+
+- **pulsekit-core**: Kotlin Multiplatform (commonMain, androidMain, jvmMain). Use `KotlinMultiplatformLibraryPlugin` or equivalent.
+- **pulsekit-android**: Android library. Use Android library convention plugin.
+- **sample-app**: Android application. Use Android application convention plugin.
+- Do not add Android dependencies to pulsekit-core; keep it platform-agnostic in commonMain.
+
+## Tasks and CI
+
+- Preserve existing compatibility tasks: `checkApiCompatibility`, `checkBinaryCompatibility`, `updateApiBaselines`. See [docs/ApiCompatibility.md](docs/ApiCompatibility.md).
+- Use `gradle.properties` and project properties for flags (e.g. `FORCE_API_COMPATIBILITY`) rather than hardcoding.
+- Before commit: run `./gradlew spotlessApply` and fix `./gradlew detekt` if needed. See [.cursor/rules/code-style-lint.mdc](.cursor/rules/code-style-lint.mdc).

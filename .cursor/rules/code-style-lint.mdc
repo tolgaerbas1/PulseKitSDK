@@ -1,0 +1,44 @@
+---
+description: Code style and lint (Spotless + detekt) for PulseKit
+globs: "**/*.kt"
+alwaysApply: false
+---
+
+# Code Style & Lint
+
+## Tools
+
+- **Spotless** (ktlint 0.50.0): Format Kotlin and Gradle Kotlin DSL. Run before commit.
+- **detekt**: Static analysis (complexity, naming, style, potential-bugs). Config: `config/detekt.yml`.
+
+## Commands
+
+```bash
+# Format all Kotlin and build scripts
+./gradlew spotlessApply
+
+# Check format without changing (CI)
+./gradlew spotlessCheck
+
+# Run detekt (report in build/reports/detekt/)
+./gradlew detekt
+
+# All three modules
+./gradlew :pulsekit-core:spotlessApply :pulsekit-android:spotlessApply :sample-app:spotlessApply
+./gradlew :pulsekit-core:detekt :pulsekit-android:detekt :sample-app:detekt
+```
+
+## Conventions (enforced by Spotless/ktlint)
+
+- **Line length**: Max 120 (detekt `MaxLineLength`); ktlint default for formatting.
+- **Trailing whitespace**: None; newline at end of file.
+- **Style**: ktlint standard (indent 4 spaces, brace style, etc.).
+
+## detekt Highlights
+
+- **complexity**: LongMethod ≤60 lines, LongParameterList ≤6, TooManyFunctions ≤15 (exclude private/protected).
+- **naming**: Class = PascalCase, function/variable = camelCase, package = lowercase with dots.
+- **style**: MagicNumber allowed for -1,0,1,2,3,4,5,10,100,1000; PrintStackTrace forbidden; ThrowingException without message/cause discouraged.
+- **potential-bugs**: UnnecessaryApply/Let/SafeCall, UnreachableCode, EqualsWithHashCodeExist, etc.
+
+When adding or editing Kotlin: run `spotlessApply` before committing; fix detekt issues when reported.

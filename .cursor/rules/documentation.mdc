@@ -1,0 +1,24 @@
+---
+description: When and how to update PulseKit documentation
+globs: docs/**/*.md, **/Module.md, README.md, CHANGELOG.md
+alwaysApply: false
+---
+
+# Documentation
+
+## When to Update
+
+- **Architecture or module behavior**: Update [docs/Architecture.md](docs/Architecture.md) and the relevant **Module.md** (e.g. pulsekit-core/Module.md, pulsekit-android/Module.md).
+- **Public API or compatibility**: Update [docs/ApiCompatibility.md](docs/ApiCompatibility.md) if process or tooling changes; document breaking changes in **CHANGELOG.md**.
+- **Quickstart or integration**: Update [docs/Quickstart.md](docs/Quickstart.md) and [README.md](README.md) when setup steps or code samples change.
+- **Design decisions**: Update [docs/DesignTradeoffs.md](docs/DesignTradeoffs.md) when adding or simplifying a major subsystem.
+
+## Format
+
+- Use clear headings and code blocks. Prefer Kotlin snippets for API examples; keep Gradle snippets in sync with actual `build.gradle.kts` and `libs.versions.toml`.
+- Cross-link between docs (e.g. Architecture → ApiCompatibility, Quickstart → Module.md) with relative paths.
+- README badges (Maven Central, API level, Kotlin) should match `gradle/libs.versions.toml` and published artifacts.
+
+## Changelog
+
+- **CHANGELOG.md**: Add entries for user-visible and breaking changes. Use a consistent format (e.g. version header, “Added” / “Changed” / “Fixed” / “Breaking”) and link to ApiCompatibility or migration notes when relevant.

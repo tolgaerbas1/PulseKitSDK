@@ -2,6 +2,7 @@ package com.pulsekit.core.api.events
 
 import com.pulsekit.core.api.config.PulseKitConfig
 import com.pulsekit.core.api.errors.PulseKitError
+import com.pulsekit.core.api.logging.PulseKitLogger
 import com.pulsekit.core.api.storage.EventQueue
 import com.pulsekit.core.api.flags.PulseKitFeatureFlags
 import kotlinx.coroutines.CoroutineScope
@@ -82,7 +83,7 @@ public class EventProcessor private constructor(
             .catch { error ->
                 // Handle processing errors
                 if (config.enableDebugLogging) {
-                    println("PulseKit: Event processing error: ${error.message}")
+                    PulseKitLogger.log("PulseKit", "Event processing error: ${error.message}")
                 }
             }
             .launchIn(scope)
@@ -163,9 +164,9 @@ public class EventProcessor private constructor(
         }
         
         if (estimatedSize > maxQueueSize * 10) { // Soft limit
-            if (config.enableDebugLogging) {
-                println("PulseKit: Large event detected (${estimatedSize} bytes), consider increasing queue size")
-            }
+        if (config.enableDebugLogging) {
+            PulseKitLogger.log("PulseKit", "Large event detected (${estimatedSize} bytes), consider increasing queue size")
+        }
         }
         
         // Validate event name
