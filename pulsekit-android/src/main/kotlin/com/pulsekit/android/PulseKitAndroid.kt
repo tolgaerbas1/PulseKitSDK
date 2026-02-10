@@ -64,9 +64,8 @@ public object PulseKitAndroid {
         
         // Initialize feature flag system
         initializeFeatureFlags(context, instance, config)
-        
-        // TODO: Set up network connectivity monitoring
-        // TODO: Set up crash reporting integration
+        // Tracked in: docs/ShowcaseImprovements.md (Açık TODO'lar). Set up network connectivity monitoring; create GitHub issue and replace with #N.
+        // Tracked in: docs/ShowcaseImprovements.md (Açık TODO'lar). Set up crash reporting integration; create GitHub issue and replace with #N.
     }
     
     /**
@@ -215,5 +214,4 @@ public object PulseKitAndroid {
      * @param flag The feature flag to check
      * @return Current value of the flag
      */
-
 }

@@ -11,6 +11,9 @@ kotlinx-serialization = "1.6.2"
 japicmp = "0.4.1"
 kotlinx-datetime = "0.4.0"
 japicmp-gradle = "0.3.1"
+spotless = "6.25.0"
+detekt = "1.23.4"
+ktlint = "0.50.0"
 
 [libraries]
 # Kotlin
@@ -47,3 +50,5 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

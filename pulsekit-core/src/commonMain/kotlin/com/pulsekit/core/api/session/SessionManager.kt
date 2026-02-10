@@ -48,9 +48,7 @@ public class SessionManager(
                 isActive = session.endTime == null
             )
         )
-        
-        // TODO: Track session start event
-        // eventProcessor.process(SessionEvent(SessionAction.START, sessionId))
+        // Tracked in: docs/ShowcaseImprovements.md (Açık TODO'lar). Track session start event; create GitHub issue and replace with #N.
     }
     
     /**
@@ -74,10 +72,7 @@ public class SessionManager(
                     isActive = completedSession.endTime == null
                 )
             )
-            
-            // TODO: Track session end event
-            // eventProcessor.process(SessionEvent(SessionAction.END, session.id))
-            
+            // Tracked in: docs/ShowcaseImprovements.md (Açık TODO'lar). Track session end event; create GitHub issue and replace with #N.
             currentSession = null
         }
     }

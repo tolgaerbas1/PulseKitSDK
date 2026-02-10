@@ -156,7 +156,7 @@ public class EventQueue(
             val priorityEvent = events[index]
             
             // Check if max retries exceeded
-            val maxRetries = 3 // TODO: Make configurable
+            val maxRetries = config.backpressureConfig.maxEventRetries
             if (priorityEvent.retryCount >= maxRetries) {
                 // Remove event and log
                 events.removeAt(index)
@@ -226,8 +226,7 @@ public class EventQueue(
             try {
                 val batch = getNextBatch(Int.MAX_VALUE)
                 if (batch.isNotEmpty()) {
-                    // TODO: Send batch to network layer
-                    // For now, just mark as processed
+                    // Tracked in: docs/ShowcaseImprovements.md (Açık TODO'lar). Send batch to network layer; create GitHub issue and replace with #N.
                     markProcessed(batch)
                 }
             } finally {

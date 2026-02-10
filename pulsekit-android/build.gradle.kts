@@ -59,5 +59,6 @@ dependencies {
     // japicmp is a build-time tool; do not add as an app/library runtime dependency
 
     testImplementation(libs.junit)
+    testImplementation(libs.mockito.core)
     androidTestImplementation(libs.junit)
 }

@@ -165,7 +165,8 @@ public class PulseKitConfigBuilder {
     public var enablePriorityDropping: Boolean = true
     public var backpressureThreshold: Double = 0.9
     public var dropWhenDiskFull: Boolean = true
-    
+    public var maxEventRetries: Int = 3
+
     public fun metadata(key: String, value: String) {
         globalMetadata[key] = value
     }
@@ -195,7 +196,8 @@ public class PulseKitConfigBuilder {
             dropPolicy = dropPolicy,
             enablePriorityDropping = enablePriorityDropping,
             backpressureThreshold = backpressureThreshold,
-            dropWhenDiskFull = dropWhenDiskFull
+            dropWhenDiskFull = dropWhenDiskFull,
+            maxEventRetries = maxEventRetries
         )
     )
 }

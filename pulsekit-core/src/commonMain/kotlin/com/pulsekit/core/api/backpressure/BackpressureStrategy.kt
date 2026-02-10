@@ -113,7 +113,13 @@ data class BackpressureConfig(
      * Whether to drop events when disk is full.
      * Default: true (prefer stability over data completeness)
      */
-    val dropWhenDiskFull: Boolean = true
+    val dropWhenDiskFull: Boolean = true,
+
+    /**
+     * Maximum retry attempts for a failed event before dropping.
+     * Default: 3
+     */
+    val maxEventRetries: Int = 3
 )
 
 /**

@@ -67,3 +67,4 @@ public object PulseKit {
         _instance = null
     }
 }
+
