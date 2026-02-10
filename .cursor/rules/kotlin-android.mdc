@@ -1,0 +1,42 @@
+---
+description: Kotlin and Android coding conventions for PulseKit
+globs: **/*.kt
+alwaysApply: false
+---
+
+# Kotlin & Android Conventions
+
+## Concurrency
+
+- Use **Kotlin coroutines** and **structured concurrency**. Prefer `CoroutineScope`, `launch`/`async`, and `Dispatchers` from `kotlinx.coroutines`.
+- Prefer `suspend` over callbacks; expose `Flow` for streams. Do not block the main thread in Android code.
+- Use `Dispatchers.Main.immediate` for UI, `Dispatchers.Default`/`IO` for SDK work; inject scope where needed for testability.
+
+## Lifecycle (Android)
+
+- Use **ProcessLifecycleOwner** (or Activity lifecycle) for app foreground/background. Do not hold references to Activity; use Application context for long-lived components.
+- Register and unregister observers in a lifecycle-aware way to avoid leaks. Prefer `LifecycleObserver` in `pulsekit-android`.
+
+## Error Handling
+
+- Prefer **sealed interfaces/classes** for SDK errors (e.g. `PulseKitError`). Use `runCatching` or try/catch and map to these types instead of exposing raw exceptions.
+- Log errors before rethrowing or returning; in public API, document which errors can be thrown or returned.
+
+```kotlin
+// Prefer: type-safe errors
+catch (e: Exception) {
+    logger.warn(e) { "Event enqueue failed" }
+    throw PulseKitError.Event.QueueFull(maxSize)
+}
+```
+
+## Naming & Style
+
+- Packages: `com.pulsekit.core.api.*`, `com.pulsekit.android.*`. Keep package structure aligned with module and feature.
+- Use `camelCase` for functions/variables, `PascalCase` for types. Constants: `UPPER_SNAKE_CASE` only for true constants.
+- Prefer `internal` over `private` for cross-file implementation details within the same module; reserve `public` for stable API.
+
+## Public API
+
+- Prefer `object` or factory functions for entry points (e.g. `PulseKit`, `PulseKitAndroid`). Document initialization order and thread safety.
+- Use DSL builders where it improves readability (e.g. `PulseKitConfig { }`). Keep defaults sensible for zero-config use.

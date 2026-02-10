@@ -1,0 +1,35 @@
+---
+description: Core PulseKit SDK standards — host app safety, type safety, module boundaries
+alwaysApply: true
+---
+
+# PulseKit Core Standards
+
+## Host App Safety (Non-Negotiable)
+
+- SDK must **never crash the host application**. Catch and handle all errors; log and degrade gracefully.
+- Public API calls must not throw uncaught exceptions to the caller when avoidable. Use `PulseKitError` sealed hierarchy and document thrown errors.
+- Bounded queues and backpressure: never allow unbounded memory growth. Prefer dropping low-priority events over OOM.
+
+## Type Safety
+
+- Use **sealed classes/interfaces** for event types (`PulseEvent`), errors (`PulseKitError`), and fixed sets of options.
+- Prefer exhaustive `when`; avoid raw strings or enums where a sealed hierarchy gives compile-time safety.
+- Use value classes or strong types for IDs and config values where it prevents misuse.
+
+## Module Boundaries
+
+- **pulsekit-core**: No Android or platform-specific dependencies. Pure Kotlin / KMP commonMain; platform code only in `androidMain`/`jvmMain` for drivers.
+- **pulsekit-android**: Android bindings only; business logic stays in core. Depend on `pulsekit-core`, not the reverse.
+- Public API lives under `com.pulsekit.core.api` and `com.pulsekit.android`; keep `internal` for implementation details.
+
+## API Compatibility
+
+- Public API changes must respect [docs/ApiCompatibility.md](docs/ApiCompatibility.md). Run `./gradlew checkApiCompatibility checkBinaryCompatibility` before merging.
+- Non-breaking: add new types/methods, optional params, broaden return types. Breaking: remove or rename public API, change signatures or visibility.
+- For intentional breaking changes: update baselines, document in CHANGELOG, bump major version.
+
+## Documentation
+
+- Update `docs/Architecture.md` and relevant `Module.md` when changing module responsibilities or public behavior.
+- Public types and main entry points must have KDoc; include `@throws` for documented errors.
