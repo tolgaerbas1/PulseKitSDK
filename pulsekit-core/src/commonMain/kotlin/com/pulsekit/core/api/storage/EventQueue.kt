@@ -3,6 +3,7 @@ package com.pulsekit.core.api.storage
 import com.pulsekit.core.api.config.PulseKitConfig
 import com.pulsekit.core.api.events.PulseEvent
 import com.pulsekit.core.api.errors.PulseKitError
+import com.pulsekit.core.api.networking.EventBatchSender
 import com.pulsekit.core.api.backpressure.SimplifiedBackpressureManager
 import com.pulsekit.core.api.backpressure.SimplifiedPriorityCalculator
 import com.pulsekit.core.api.backpressure.EventPriority
@@ -28,9 +29,10 @@ import kotlinx.datetime.Instant
  */
 public class EventQueue(
     private val config: PulseKitConfig,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val batchSender: EventBatchSender? = null
 ) {
-    
+
     private val events: MutableList<SimplifiedPriorityEvent> = mutableListOf()
     private val _eventFlow = MutableSharedFlow<PulseEvent>()
     private var isProcessing: Boolean = false
@@ -226,8 +228,16 @@ public class EventQueue(
         scope.launch {
             try {
                 val batch = getNextBatch(Int.MAX_VALUE)
-                if (batch.isNotEmpty()) {
-                    // Tracked in: docs/ShowcaseImprovements.md (Açık TODO'lar). Send batch to network layer; create GitHub issue and replace with #N.
+                if (batch.isEmpty()) return@launch
+                if (batchSender != null) {
+                    val jsonPayload = EventSerializer.serializeBatch(batch)
+                    val success = runCatching { batchSender.sendBatch(jsonPayload) }.getOrElse { false }
+                    if (success) {
+                        markProcessed(batch)
+                    } else {
+                        batch.forEach { markFailed(it) }
+                    }
+                } else {
                     markProcessed(batch)
                 }
             } finally {

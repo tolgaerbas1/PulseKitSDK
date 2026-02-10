@@ -3,8 +3,13 @@ package com.pulsekit.android
 import android.content.Context
 import android.util.Log
 import com.pulsekit.android.lifecycle.PulseKitLifecycleObserver
+import com.pulsekit.android.network.NetworkMonitor
+import com.pulsekit.android.networking.AndroidEventBatchSender
+import com.pulsekit.core.api.events.ErrorEvent
+import com.pulsekit.core.api.events.ErrorType
 import com.pulsekit.core.api.logging.PulseKitLogger
 import com.pulsekit.android.lifecycle.SessionLifecycleListener
+import kotlinx.coroutines.flow.first
 import com.pulsekit.android.storage.AndroidFileFlagStorage
 import com.pulsekit.core.api.PulseKit
 import com.pulsekit.core.api.config.PulseKitConfig
@@ -58,8 +63,9 @@ public object PulseKitAndroid {
     ) {
         // Use Android Log for SDK logging when running on Android
         PulseKitLogger.init { tag, message -> Log.d(tag, message) }
-        // Initialize core SDK
-        val instance = PulseKit.initialize(config, CoroutineScope(Dispatchers.Default))
+        // Initialize core SDK with Android batch sender for network upload
+        val batchSender = AndroidEventBatchSender(config)
+        val instance = PulseKit.initialize(config, CoroutineScope(Dispatchers.Default), batchSender)
         // Set up Android-specific integrations
         if (enableLifecycleObserver && config.enableAutoSessionManagement) {
             PulseKitLifecycleObserver.initialize(context, instance)
@@ -67,8 +73,58 @@ public object PulseKitAndroid {
         
         // Initialize feature flag system
         initializeFeatureFlags(context, instance, config)
-        // Tracked in: docs/ShowcaseImprovements.md (Açık TODO'lar). Set up network connectivity monitoring; create GitHub issue and replace with #N.
-        // Tracked in: docs/ShowcaseImprovements.md (Açık TODO'lar). Set up crash reporting integration; create GitHub issue and replace with #N.
+        // Network connectivity monitoring: flush when back online
+        setupNetworkConnectivityMonitoring(context, instance)
+        // Opt-in crash reporting: track uncaught exceptions as fatal ErrorEvents
+        if (config.enableCrashReporting) {
+            setupCrashReporting(instance)
+        }
+    }
+
+    /**
+     * Observes network connectivity and flushes event queue when connection is restored.
+     */
+    private fun setupNetworkConnectivityMonitoring(
+        context: Context,
+        instance: com.pulsekit.core.api.PulseKitInstance
+    ) {
+        val monitor = NetworkMonitor.getInstance(context)
+        CoroutineScope(Dispatchers.Default).launch {
+            var wasConnected = monitor.isConnected.first()
+            monitor.isConnected.collect { isConnected ->
+                if (isConnected && !wasConnected) {
+                    instance.flush()
+                }
+                wasConnected = isConnected
+            }
+        }
+    }
+
+    /**
+     * Sets default UncaughtExceptionHandler to track fatal errors as ErrorEvents,
+     * then delegates to the previous handler.
+     */
+    private fun setupCrashReporting(instance: com.pulsekit.core.api.PulseKitInstance) {
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                instance.track(
+                    ErrorEvent(
+                        errorType = ErrorType.RUNTIME,
+                        message = throwable.message ?: "Uncaught exception",
+                        stackTrace = throwable.stackTraceToString(),
+                        isFatal = true,
+                        metadata = mapOf(
+                            "thread" to (thread.name ?: "unknown"),
+                            "exception" to (throwable.javaClass.name)
+                        )
+                    )
+                )
+            } catch (_: Exception) {
+                // Never let SDK break the app
+            }
+            defaultHandler?.uncaughtException(thread, throwable)
+        }
     }
     
     /**

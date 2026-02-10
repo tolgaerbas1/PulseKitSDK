@@ -12,6 +12,7 @@ import com.pulsekit.core.api.storage.EventQueue
 import com.pulsekit.core.api.flags.FeatureFlagManager
 import com.pulsekit.core.api.flags.FeatureFlag
 import com.pulsekit.core.api.flags.PulseKitFeatureFlags
+import com.pulsekit.core.api.networking.EventBatchSender
 import com.pulsekit.core.api.networking.FeatureFlagService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,12 +29,13 @@ import kotlinx.coroutines.launch
  */
 public class PulseKitInstance internal constructor(
     public val config: PulseKitConfig,
-    scope: CoroutineScope? = null
+    scope: CoroutineScope? = null,
+    batchSender: EventBatchSender? = null
 ) : FlagProvider {
     private var initialized: Boolean = false
     private val sdkScope: CoroutineScope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    
-    private val eventQueue: EventQueue = EventQueue(config, sdkScope)
+
+    private val eventQueue: EventQueue = EventQueue(config, sdkScope, batchSender)
     private val sessionManager: SessionManager = SessionManager(config, sdkScope)
     private val eventProcessor: EventProcessor = EventProcessor.create(config, eventQueue, sdkScope, this)
     
@@ -42,9 +44,10 @@ public class PulseKitInstance internal constructor(
     private val flagService: FeatureFlagService? = createFlagService()
     
     init {
+        // Wire session start/end to event queue as LifecycleEvents
+        sessionManager.setOnTrackEvent(eventProcessor::process)
         // Initialize feature flags
         initializeFeatureFlags()
-        
         // Start periodic flag fetching
         flagService?.startPeriodicFetching()
     }

@@ -2,6 +2,7 @@ package com.pulsekit.core.api
 
 import com.pulsekit.core.api.config.PulseKitConfig
 import com.pulsekit.core.api.events.PulseEvent
+import com.pulsekit.core.api.networking.EventBatchSender
 import com.pulsekit.core.api.session.SessionManager
 import kotlinx.coroutines.CoroutineScope
 
@@ -47,10 +48,11 @@ public object PulseKit {
      */
     public fun initialize(
         config: PulseKitConfig = PulseKitConfig(),
-        scope: CoroutineScope? = null
+        scope: CoroutineScope? = null,
+        batchSender: EventBatchSender? = null
     ): PulseKitInstance {
         if (_instance == null) {
-            _instance = PulseKitInstance(config, scope)
+            _instance = PulseKitInstance(config, scope, batchSender)
         }
         return _instance!!
     }

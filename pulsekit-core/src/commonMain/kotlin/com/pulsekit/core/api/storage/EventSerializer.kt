@@ -49,6 +49,14 @@ internal object EventSerializer {
     }
     
     /**
+     * Serialize a batch of events to a JSON array string.
+     */
+    fun serializeBatch(events: List<PulseEvent>): String {
+        if (events.isEmpty()) return "[]"
+        return "[" + events.joinToString(",") { serialize(it) } + "]"
+    }
+
+    /**
      * Get the event type name for a PulseEvent.
      */
     fun getEventType(event: PulseEvent): String {

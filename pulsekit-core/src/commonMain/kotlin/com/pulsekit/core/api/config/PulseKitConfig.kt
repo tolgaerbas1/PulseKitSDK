@@ -105,6 +105,13 @@ public data class PulseKitConfig(
     public val globalMetadata: Map<String, String> = emptyMap(),
     
     /**
+     * Enable automatic crash reporting via default UncaughtExceptionHandler.
+     * When true, uncaught exceptions are tracked as fatal ErrorEvents before delegating to the previous handler.
+     * Opt-in to avoid conflicting with app-level crash tools (e.g. Firebase Crashlytics).
+     */
+    public val enableCrashReporting: Boolean = false,
+
+    /**
      * Backpressure configuration for queue management.
      * Controls how events are dropped when queues become full.
      */
@@ -153,6 +160,7 @@ public class PulseKitConfigBuilder {
     public var enableAutoSessionManagement: Boolean = true
     public var enableOfflineQueueing: Boolean = true
     public var enableDiskPersistence: Boolean = true
+    public var enableCrashReporting: Boolean = false
     public var maxDatabaseSize: Long = 50 * 1024 * 1024 // 50MB
     public var databaseCleanupInterval: Duration = 1.hours
     public var userAgent: String? = null
@@ -186,6 +194,7 @@ public class PulseKitConfigBuilder {
         enableAutoSessionManagement = enableAutoSessionManagement,
         enableOfflineQueueing = enableOfflineQueueing,
         enableDiskPersistence = enableDiskPersistence,
+        enableCrashReporting = enableCrashReporting,
         maxDatabaseSize = maxDatabaseSize,
         databaseCleanupInterval = databaseCleanupInterval,
         userAgent = userAgent,

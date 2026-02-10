@@ -1,6 +1,9 @@
 package com.pulsekit.core.api.session
 
 import com.pulsekit.core.api.config.PulseKitConfig
+import com.pulsekit.core.api.events.LifecycleAction
+import com.pulsekit.core.api.events.LifecycleEvent
+import com.pulsekit.core.api.events.PulseEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -17,10 +20,11 @@ public class SessionManager(
     private val config: PulseKitConfig,
     private val scope: CoroutineScope
 ) {
-    
+
     private var currentSession: Session? = null
     private var timeoutJob: Job? = null
     private var sessionListener: SessionListener? = null
+    private var onTrackEvent: ((PulseEvent) -> Unit)? = null
     
     /**
      * Start a new session.
@@ -48,7 +52,13 @@ public class SessionManager(
                 isActive = session.endTime == null
             )
         )
-        // Tracked in: docs/ShowcaseImprovements.md (Açık TODO'lar). Track session start event; create GitHub issue and replace with #N.
+        onTrackEvent?.invoke(
+            LifecycleEvent(
+                action = LifecycleAction.START,
+                component = "session",
+                metadata = mapOf("session_id" to session.id.value)
+            )
+        )
     }
     
     /**
@@ -72,7 +82,13 @@ public class SessionManager(
                     isActive = completedSession.endTime == null
                 )
             )
-            // Tracked in: docs/ShowcaseImprovements.md (Açık TODO'lar). Track session end event; create GitHub issue and replace with #N.
+            onTrackEvent?.invoke(
+                LifecycleEvent(
+                    action = LifecycleAction.STOP,
+                    component = "session",
+                    metadata = mapOf("session_id" to completedSession.id.value)
+                )
+            )
             currentSession = null
         }
     }
@@ -108,6 +124,14 @@ public class SessionManager(
      */
     public fun setSessionListener(listener: SessionListener?) {
         sessionListener = listener
+    }
+
+    /**
+     * Set callback to track session start/end as LifecycleEvents.
+     * Called with LifecycleEvent(START) on session start and LifecycleEvent(STOP) on session end.
+     */
+    internal fun setOnTrackEvent(callback: ((PulseEvent) -> Unit)?) {
+        onTrackEvent = callback
     }
     
     /**
