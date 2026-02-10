@@ -31,7 +31,7 @@ class MyApplication : Application() {
         
         // Initialize PulseKit with basic configuration
         PulseKitAndroid.initialize(this, PulseKitConfig {
-            apiKey = "your-api-key" // Get this from PulseKit dashboard
+            apiKey = "your-api-key" // Production: use BuildConfig or env, do not hardcode
             enableDebugLogging = BuildConfig.DEBUG
         })
     }

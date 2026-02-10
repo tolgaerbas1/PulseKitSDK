@@ -2,7 +2,7 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.pulsekit/pulsekit-android.svg)](https://search.maven.org/artifact/com.pulsekit/pulsekit-android)
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg)](https://android-arsenal.com/api?level=21)
-[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-blue.svg)](https://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.10-blue.svg)](https://kotlinlang.org)
 
 Production-grade telemetry SDK for Android apps and games, built with a developer-first API design, lifecycle-aware, and offline-first architecture.
 
@@ -35,7 +35,7 @@ class MyApplication : Application() {
         super.onCreate()
         
         PulseKitAndroid.initialize(this, PulseKitConfig {
-            apiKey = "your-api-key"
+            apiKey = "your-api-key"  // Production: use BuildConfig or env, do not hardcode
             enableDebugLogging = BuildConfig.DEBUG
             enableAutoSessionManagement = true
             enableOfflineQueueing = true
@@ -262,10 +262,18 @@ This project is configured for Maven Central publishing:
 ./gradlew publishAllPublicationsToMavenCentralRepository
 ```
 
+## Production note
+
+**API key:** In production, provide the API key via BuildConfig, environment variables, or a secure secrets mechanism. Do not commit API keys in source code.
+
+## Production note
+
+**API key:** In production, provide the API key via BuildConfig, environment variables, or a secure secrets mechanism. Do not commit API keys in source code.
+
 ## Requirements
 
 - **Android API**: 21+ (Android 5.0)
-- **Kotlin**: 1.9.22+
+- **Kotlin**: 1.9.10+
 - **Gradle**: 8.0+
 - **Coroutines**: 1.7.3+
 
