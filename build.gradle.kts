@@ -10,6 +10,17 @@ plugins {
     id("io.gitlab.arturbosch.detekt") version "1.23.4" apply false
 }
 
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.diffplug.spotless:spotless-plugin-gradle:6.25.0")
+        classpath("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.4")
+    }
+}
+
 // Apply versioning configuration
 apply(from = "gradle/versioning.gradle.kts")
 
@@ -24,32 +35,12 @@ configure<com.diffplug.gradle.spotless.SpotlessExtension> {
     }
 }
 
-// Spotless & detekt for Kotlin modules
+// Spotless & detekt for Kotlin modules (config in gradle/spotless-detekt.gradle.kts)
 subprojects {
     if (listOf("pulsekit-core", "pulsekit-android", "sample-app").contains(name)) {
         apply(plugin = "com.diffplug.spotless")
         apply(plugin = "io.gitlab.arturbosch.detekt")
-
-        configure<com.diffplug.gradle.spotless.SpotlessExtension> {
-            kotlin {
-                target("src/**/*.kt")
-                ktlint("0.50.0")
-                trimTrailingWhitespace()
-                endWithNewline()
-            }
-            kotlinGradle {
-                target("*.gradle.kts")
-                ktlint("0.50.0")
-                trimTrailingWhitespace()
-                endWithNewline()
-            }
-        }
-
-        detekt {
-            buildUponDefaultConfig = true
-            allRules = false
-            config.setFrom(files("${rootProject.projectDir}/config/detekt.yml"))
-        }
+        apply(from = rootProject.file("gradle/spotless-detekt.gradle"))
     }
 }
 

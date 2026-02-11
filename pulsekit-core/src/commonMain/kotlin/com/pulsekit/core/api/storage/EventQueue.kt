@@ -17,6 +17,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
@@ -34,9 +37,10 @@ public class EventQueue(
 ) {
 
     private val events: MutableList<SimplifiedPriorityEvent> = mutableListOf()
+    private val eventsMutex = Mutex()
     private val _eventFlow = MutableSharedFlow<PulseEvent>()
     private var isProcessing: Boolean = false
-    
+
     // Simplified backpressure management
     private val backpressureManager = SimplifiedBackpressureManager(
         config.backpressureConfig,
@@ -56,31 +60,31 @@ public class EventQueue(
     public fun enqueue(event: PulseEvent) {
         val priority = SimplifiedPriorityCalculator.calculatePriority(event)
         val priorityEvent = SimplifiedPriorityEvent(event, priority)
-        
-        // Apply backpressure if needed
-        val maxMemorySize = config.backpressureConfig.maxInMemoryQueueSize
-        if (events.size >= maxMemorySize) {
-            val droppedCount = backpressureManager.applyBackpressure(
-                events, 
-                maxMemorySize, 
-                "memory"
-            )
-            
-            if (config.enableDebugLogging && droppedCount > 0) {
-                PulseKitLogger.log("PulseKit", "Dropped $droppedCount events due to memory pressure")
+
+        runBlocking {
+            eventsMutex.withLock {
+                // Apply backpressure if needed
+                val maxMemorySize = config.backpressureConfig.maxInMemoryQueueSize
+                if (events.size >= maxMemorySize) {
+                    val droppedCount = backpressureManager.applyBackpressure(
+                        events,
+                        maxMemorySize,
+                        "memory"
+                    )
+                    if (config.enableDebugLogging && droppedCount > 0) {
+                        PulseKitLogger.log("PulseKit", "Dropped $droppedCount events due to memory pressure")
+                    }
+                }
+                events.add(priorityEvent)
+                backpressureManager.updateUtilization(
+                    events.size,
+                    maxMemorySize,
+                    0,
+                    config.backpressureConfig.maxDiskQueueSize
+                )
             }
         }
-        
-        events.add(priorityEvent)
-        
-        // Update utilization metrics
-        backpressureManager.updateUtilization(
-            events.size, 
-            maxMemorySize, 
-            0, 
-            config.backpressureConfig.maxDiskQueueSize
-        )
-        
+
         // Emit event for immediate processing if enabled
         if (config.enableOfflineQueueing) {
             scope.launch {
@@ -95,57 +99,51 @@ public class EventQueue(
      * @param batchSize Maximum number of events to return
      * @return List of events, may be empty if no events are available
      */
-    public fun getNextBatch(batchSize: Int = 50): List<PulseEvent> {
-        if (isProcessing || events.isEmpty()) {
-            return emptyList()
-        }
-        
-        val now = Clock.System.now()
-        val validEvents = events.filter { priorityEvent ->
-            val age = now - priorityEvent.timestamp
-            age <= config.maxEventAge
-        }
-        
-        // Remove expired events
-        val expiredCount = events.size - validEvents.size
-        if (expiredCount > 0) {
-            events.removeAll { priorityEvent ->
+    public fun getNextBatch(batchSize: Int = 50): List<PulseEvent> = runBlocking {
+        eventsMutex.withLock {
+            if (events.isEmpty()) {
+                return@runBlocking emptyList()
+            }
+            val now = Clock.System.now()
+            val validEvents = events.filter { priorityEvent ->
                 val age = now - priorityEvent.timestamp
-                age > config.maxEventAge
+                age <= config.maxEventAge
             }
-            
-            if (config.enableDebugLogging && expiredCount > 0) {
-                PulseKitLogger.log("PulseKit", "Removed $expiredCount expired events")
+            val expiredCount = events.size - validEvents.size
+            if (expiredCount > 0) {
+                events.removeAll { priorityEvent ->
+                    val age = now - priorityEvent.timestamp
+                    age > config.maxEventAge
+                }
+                if (config.enableDebugLogging && expiredCount > 0) {
+                    PulseKitLogger.log("PulseKit", "Removed $expiredCount expired events")
+                }
             }
+            val sortedEvents = validEvents.sortedWith(
+                compareByDescending<SimplifiedPriorityEvent> { it.priority.value }
+                    .thenBy { it.timestamp }
+            )
+            sortedEvents.take(batchSize).map { it.event }
         }
-        
-        // Sort by priority (highest first) then by timestamp (oldest first)
-        val sortedEvents = validEvents.sortedWith(
-            compareByDescending<SimplifiedPriorityEvent> { it.priority.value }
-                .thenBy { it.timestamp }
-        )
-        
-        val batch = sortedEvents.take(batchSize)
-        return batch.map { it.event }
     }
     
     /**
      * Mark events as successfully processed and remove them from the queue.
-     * 
-     * @param events The events that were successfully processed
+     *
+     * @param processedEvents The events that were successfully processed
      */
-    public fun markProcessed(events: List<PulseEvent>) {
-        events.forEach { event ->
-            this.events.removeAll { it.event.eventId == event.eventId }
+    public fun markProcessed(processedEvents: List<PulseEvent>) = runBlocking {
+        eventsMutex.withLock {
+            processedEvents.forEach { event ->
+                events.removeAll { it.event.eventId == event.eventId }
+            }
+            backpressureManager.updateUtilization(
+                events.size,
+                config.backpressureConfig.maxInMemoryQueueSize,
+                0,
+                config.backpressureConfig.maxDiskQueueSize
+            )
         }
-        
-        // Update utilization metrics
-        backpressureManager.updateUtilization(
-            this.events.size, 
-            config.backpressureConfig.maxInMemoryQueueSize, 
-            0, 
-            config.backpressureConfig.maxDiskQueueSize
-        )
     }
     
     /**
@@ -153,23 +151,21 @@ public class EventQueue(
      * 
      * @param event The event that failed to process
      */
-    public fun markFailed(event: PulseEvent) {
-        val index = events.indexOfFirst { it.event.eventId == event.eventId }
-        if (index >= 0) {
-            val priorityEvent = events[index]
-            
-            // Check if max retries exceeded
-            val maxRetries = config.backpressureConfig.maxEventRetries
-            if (priorityEvent.retryCount >= maxRetries) {
-                // Remove event and log
-                events.removeAt(index)
-                if (config.enableDebugLogging) {
-                    PulseKitLogger.log("PulseKit", "Event ${event.eventId} exceeded max retries, dropping")
+    public fun markFailed(event: PulseEvent) = runBlocking {
+        eventsMutex.withLock {
+            val index = events.indexOfFirst { it.event.eventId == event.eventId }
+            if (index >= 0) {
+                val priorityEvent = events[index]
+                val maxRetries = config.backpressureConfig.maxEventRetries
+                if (priorityEvent.retryCount >= maxRetries) {
+                    events.removeAt(index)
+                    if (config.enableDebugLogging) {
+                        PulseKitLogger.log("PulseKit", "Event ${event.eventId} exceeded max retries, dropping")
+                    }
+                } else {
+                    val updatedEvent = priorityEvent.copy(retryCount = priorityEvent.retryCount + 1)
+                    events[index] = updatedEvent
                 }
-            } else {
-                // Update retry count
-                val updatedEvent = priorityEvent.copy(retryCount = priorityEvent.retryCount + 1)
-                events[index] = updatedEvent
             }
         }
     }
@@ -177,17 +173,17 @@ public class EventQueue(
     /**
      * Get the current number of queued events.
      */
-    public fun size(): Int = events.size
-    
+    public fun size(): Int = runBlocking { eventsMutex.withLock { events.size } }
+
     /**
      * Check if the queue is empty.
      */
-    public fun isEmpty(): Boolean = events.isEmpty()
-    
+    public fun isEmpty(): Boolean = runBlocking { eventsMutex.withLock { events.isEmpty() } }
+
     /**
      * Check if the queue is full.
      */
-    public fun isFull(): Boolean = events.size >= config.backpressureConfig.maxInMemoryQueueSize
+    public fun isFull(): Boolean = size() >= config.backpressureConfig.maxInMemoryQueueSize
     
     /**
      * Check if backpressure is active.
@@ -202,15 +198,17 @@ public class EventQueue(
     /**
      * Clear all events from the queue.
      */
-    public fun clear() {
-        events.clear()
-        backpressureManager.updateUtilization(
-            0, 
-            config.backpressureConfig.maxInMemoryQueueSize, 
-            0, 
-            config.backpressureConfig.maxDiskQueueSize
-        )
-        backpressureManager.reset()
+    public fun clear() = runBlocking {
+        eventsMutex.withLock {
+            events.clear()
+            backpressureManager.updateUtilization(
+                0,
+                config.backpressureConfig.maxInMemoryQueueSize,
+                0,
+                config.backpressureConfig.maxDiskQueueSize
+            )
+            backpressureManager.reset()
+        }
     }
     
     /**
@@ -249,30 +247,30 @@ public class EventQueue(
     /**
      * Get queue statistics for debugging.
      */
-    public fun getStats(): QueueStats {
-        val now = Clock.System.now()
-        val eventsByAge = events.groupBy { priorityEvent ->
-            val age = now - priorityEvent.timestamp
-            when {
-                age < 1.minutes -> "fresh"
-                age < 5.minutes -> "recent"
-                age < 30.minutes -> "old"
-                else -> "stale"
+    public fun getStats(): QueueStats = runBlocking {
+        eventsMutex.withLock {
+            val now = Clock.System.now()
+            val eventsByAge = events.groupBy { priorityEvent ->
+                val age = now - priorityEvent.timestamp
+                when {
+                    age < 1.minutes -> "fresh"
+                    age < 5.minutes -> "recent"
+                    age < 30.minutes -> "old"
+                    else -> "stale"
+                }
             }
+            val eventsByPriority = events.groupBy { it.priority }
+            QueueStats(
+                totalEvents = events.size,
+                isProcessing = isProcessing,
+                eventsByAge = eventsByAge.mapValues { it.value.size },
+                eventsByPriority = eventsByPriority.mapValues { it.value.size },
+                oldestEventAge = events.minOfOrNull { now - it.timestamp },
+                newestEventAge = events.maxOfOrNull { now - it.timestamp },
+                backpressureMetrics = backpressureManager.getMetrics(),
+                isBackpressureActive = isBackpressureActive()
+            )
         }
-        
-        val eventsByPriority = events.groupBy { it.priority }
-        
-        return QueueStats(
-            totalEvents = events.size,
-            isProcessing = isProcessing,
-            eventsByAge = eventsByAge.mapValues { it.value.size },
-            eventsByPriority = eventsByPriority.mapValues { it.value.size },
-            oldestEventAge = events.minOfOrNull { now - it.timestamp },
-            newestEventAge = events.maxOfOrNull { now - it.timestamp },
-            backpressureMetrics = backpressureManager.getMetrics(),
-            isBackpressureActive = isBackpressureActive()
-        )
     }
     
     /**

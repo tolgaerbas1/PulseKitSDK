@@ -1,0 +1,23 @@
+// Applied to subprojects that have already applied spotless and detekt plugins.
+// Uses Groovy so plugin extension types are resolved at runtime.
+
+spotless {
+    kotlin {
+        target 'src/**/*.kt'
+        ktlint('0.50.0')
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    kotlinGradle {
+        target '*.gradle.kts'
+        ktlint('0.50.0')
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    config.setFrom(files("${rootProject.projectDir}/config/detekt.yml"))
+}
