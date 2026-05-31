@@ -6,30 +6,30 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.pulsekit.android.PulseKitAndroid
 import com.pulsekit.core.api.events.CustomEvent
-import com.pulsekit.core.api.events.EngagementEvent
 import com.pulsekit.core.api.events.EngagementAction
-import com.pulsekit.core.api.events.PerformanceEvent
+import com.pulsekit.core.api.events.EngagementEvent
 import com.pulsekit.core.api.events.ErrorEvent
 import com.pulsekit.core.api.events.ErrorType
-import kotlin.time.Duration.Companion.milliseconds
+import com.pulsekit.core.api.events.PerformanceEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Main activity demonstrating PulseKit event tracking.
  */
 class MainActivity : AppCompatActivity() {
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        
+
         setupEventTracking()
     }
-    
+
     private fun setupEventTracking() {
         // Track button click events with automatic activity monitoring
         findViewById<Button>(R.id.btn_track_custom).setOnClickListener {
@@ -37,50 +37,50 @@ class MainActivity : AppCompatActivity() {
             PulseKitAndroid.updateActivity()
             trackCustomEvent()
         }
-        
+
         findViewById<Button>(R.id.btn_track_engagement).setOnClickListener {
             PulseKitAndroid.updateActivity()
             trackEngagementEvent()
         }
-        
+
         findViewById<Button>(R.id.btn_track_performance).setOnClickListener {
             PulseKitAndroid.updateActivity()
             trackPerformanceEvent()
         }
-        
+
         findViewById<Button>(R.id.btn_track_error).setOnClickListener {
             PulseKitAndroid.updateActivity()
             trackErrorEvent()
         }
-        
+
         findViewById<Button>(R.id.btn_session_info).setOnClickListener {
             PulseKitAndroid.updateActivity()
             showSessionInfo()
         }
-        
+
         findViewById<Button>(R.id.btn_flush_events).setOnClickListener {
             PulseKitAndroid.updateActivity()
             flushEvents()
         }
-        
+
         // Add backpressure demo button
         findViewById<Button>(R.id.btn_backpressure_demo).setOnClickListener {
             PulseKitAndroid.updateActivity()
             backpressureDemo()
         }
-        
+
         // Track app screen view
         PulseKitAndroid.instance.track(
             CustomEvent(
                 eventName = "screen_view",
                 metadata = mapOf(
                     "screen_name" to "MainActivity",
-                    "screen_class" to this::class.java.simpleName
-                )
-            )
+                    "screen_class" to this::class.java.simpleName,
+                ),
+            ),
         )
     }
-    
+
     private fun trackCustomEvent() {
         PulseKitAndroid.instance.track(
             CustomEvent(
@@ -90,14 +90,14 @@ class MainActivity : AppCompatActivity() {
                 metadata = mapOf(
                     "button_id" to "btn_track_custom",
                     "timestamp" to System.currentTimeMillis().toString(),
-                    "user_action" to "custom_event_demo"
-                )
-            )
+                    "user_action" to "custom_event_demo",
+                ),
+            ),
         )
-        
+
         showToast("Custom event tracked")
     }
-    
+
     private fun trackEngagementEvent() {
         PulseKitAndroid.instance.track(
             EngagementEvent(
@@ -106,14 +106,14 @@ class MainActivity : AppCompatActivity() {
                 duration = 150.milliseconds,
                 metadata = mapOf(
                     "button_text" to "Track Engagement",
-                    "coordinates" to "100,200"
-                )
-            )
+                    "coordinates" to "100,200",
+                ),
+            ),
         )
-        
+
         showToast("Engagement event tracked")
     }
-    
+
     private fun trackPerformanceEvent() {
         val startTime = System.currentTimeMillis()
         CoroutineScope(Dispatchers.Default).launch {
@@ -126,16 +126,16 @@ class MainActivity : AppCompatActivity() {
                     unit = "ms",
                     metadata = mapOf(
                         "button_type" to "performance_demo",
-                        "thread_name" to Thread.currentThread().name
-                    )
-                )
+                        "thread_name" to Thread.currentThread().name,
+                    ),
+                ),
             )
             withContext(Dispatchers.Main) {
                 showToast("Performance event tracked (${duration}ms)")
             }
         }
     }
-    
+
     private fun trackErrorEvent() {
         try {
             // Simulate an error
@@ -149,20 +149,20 @@ class MainActivity : AppCompatActivity() {
                     isFatal = false,
                     metadata = mapOf(
                         "error_source" to "demo_button",
-                        "user_triggered" to "true"
-                    )
-                )
+                        "user_triggered" to "true",
+                    ),
+                ),
             )
-            
+
             showToast("Error event tracked")
         }
     }
-    
+
     private fun showSessionInfo() {
         val sessionInfo = PulseKitAndroid.instance.getCurrentSession()
         val androidSessionInfo = PulseKitAndroid.getCurrentSessionInfo()
         val status = PulseKitAndroid.instance.getStatus()
-        
+
         val message = if (sessionInfo != null && androidSessionInfo != null) {
             """
             Session Active: ${sessionInfo.isActive}
@@ -180,15 +180,15 @@ class MainActivity : AppCompatActivity() {
             No active session
             """.trimIndent()
         }
-        
+
         showToast(message)
     }
-    
+
     private fun flushEvents() {
         PulseKitAndroid.instance.flush()
         showToast("Events flushed")
     }
-    
+
     private fun backpressureDemo() {
         // Generate high volume of events to demonstrate backpressure
         val scope = CoroutineScope(Dispatchers.Default)
@@ -198,15 +198,20 @@ class MainActivity : AppCompatActivity() {
                     0 -> CustomEvent("backpressure_test_low", metadata = mapOf("priority" to "low"))
                     1 -> CustomEvent("backpressure_test_medium", metadata = mapOf("priority" to "medium"))
                     2 -> PerformanceEvent("backpressure_test_high", 100.0, "ms")
-                    else -> ErrorEvent(com.pulsekit.core.api.events.ErrorType.RUNTIME, "Backpressure test error", "", false)
+                    else -> ErrorEvent(
+                        ErrorType.RUNTIME,
+                        "Backpressure test error",
+                        "",
+                        false,
+                    )
                 }
-                
+
                 PulseKitAndroid.instance.track(event)
-                
+
                 // Small delay to simulate real usage
                 kotlinx.coroutines.delay(1)
             }
-            
+
             // Show queue statistics
             val status = PulseKitAndroid.instance.getStatus()
             val message = """
@@ -219,7 +224,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    
+
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }

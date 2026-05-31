@@ -9,30 +9,30 @@ import kotlinx.serialization.json.Json
 
 /**
  * Persistence layer for feature flags.
- * 
+ *
  * This handles optional disk persistence of feature flag values
  * to maintain state across app restarts.
  */
 class FlagPersistence private constructor(
     private val scope: CoroutineScope,
     private val storage: FlagStorage,
-    @Suppress("UNUSED_PARAMETER") private val _privateInit: Unit
+    @Suppress("UNUSED_PARAMETER") private val _privateInit: Unit,
 ) {
 
     constructor(
         scope: CoroutineScope,
-        storage: FlagStorage
+        storage: FlagStorage,
     ) : this(
         scope = scope,
         storage = storage,
-        _privateInit = Unit
+        _privateInit = Unit,
     )
-    
+
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
     }
-    
+
     /**
      * Save feature flags to persistent storage.
      */
@@ -47,7 +47,7 @@ class FlagPersistence private constructor(
             }
         }
     }
-    
+
     /**
      * Load feature flags from persistent storage.
      */
@@ -65,7 +65,7 @@ class FlagPersistence private constructor(
             null
         }
     }
-    
+
     /**
      * Clear persisted feature flags.
      */
@@ -92,21 +92,21 @@ interface FlagStorage {
 
 /**
  * In-memory implementation of FlagStorage.
- * 
+ *
  * This is used when disk persistence is disabled.
  */
 class InMemoryFlagStorage : FlagStorage {
-    
+
     private var data: String? = null
-    
+
     override suspend fun save(data: String) {
         this.data = data
     }
-    
+
     override suspend fun load(): String? {
         return data
     }
-    
+
     override suspend fun clear() {
         data = null
     }
@@ -114,21 +114,21 @@ class InMemoryFlagStorage : FlagStorage {
 
 /**
  * Disk-based implementation of FlagStorage.
- * 
+ *
  * This uses platform-specific storage implementations.
  */
 class DiskFlagStorage(
-    private val platformStorage: PlatformFlagStorage
+    private val platformStorage: PlatformFlagStorage,
 ) : FlagStorage {
-    
+
     override suspend fun save(data: String) {
         platformStorage.save("feature_flags.json", data)
     }
-    
+
     override suspend fun load(): String? {
         return platformStorage.load("feature_flags.json")
     }
-    
+
     override suspend fun clear() {
         platformStorage.clear("feature_flags.json")
     }

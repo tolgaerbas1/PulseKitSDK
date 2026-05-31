@@ -24,7 +24,7 @@ class PulseKitAndroidTest {
                 apiKey = "test-key"
                 enableDiskPersistence = false
             },
-            enableLifecycleObserver = false
+            enableLifecycleObserver = false,
         )
         assertTrue(PulseKitAndroid.isInitialized)
     }
@@ -34,8 +34,11 @@ class PulseKitAndroidTest {
         val context = mock(Context::class.java)
         PulseKitAndroid.initialize(
             context,
-            PulseKitConfig { apiKey = "test"; enableDiskPersistence = false },
-            enableLifecycleObserver = false
+            PulseKitConfig {
+                apiKey = "test"
+                enableDiskPersistence = false
+            },
+            enableLifecycleObserver = false,
         )
         assertNotNull(PulseKitAndroid.instance)
     }

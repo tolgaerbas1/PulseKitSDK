@@ -1,10 +1,10 @@
 package com.pulsekit.core.api.config
 
-import kotlin.time.Duration.Companion.minutes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.time.Duration.Companion.minutes
 
 class PulseKitConfigTest {
 

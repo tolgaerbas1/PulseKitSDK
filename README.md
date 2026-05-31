@@ -35,7 +35,7 @@ class MyApplication : Application() {
         super.onCreate()
         
         PulseKitAndroid.initialize(this, PulseKitConfig {
-            apiKey = "your-api-key"  // Production: use BuildConfig or env, do not hardcode
+            apiKey = BuildConfig.PULSEKIT_API_KEY  // See docs/ApiKeyAndBackend.md for production setup
             enableDebugLogging = BuildConfig.DEBUG
             enableAutoSessionManagement = true
             enableOfflineQueueing = true
@@ -166,8 +166,8 @@ PulseKit uses a clean DSL-based configuration:
 
 ```kotlin
 val config = PulseKitConfig {
-    // Required for production
-    apiKey = "your-api-key"
+    // Required for production - use BuildConfig or env; never hardcode
+    apiKey = BuildConfig.PULSEKIT_API_KEY
     
     // Optional settings
     baseUrl = "https://api.pulsekit.dev"
@@ -181,6 +181,8 @@ val config = PulseKitConfig {
     metadata("build_type", "release")
 }
 ```
+
+**API Key and Production:** See [API Key and Backend Guide](docs/ApiKeyAndBackend.md) for secure setup with BuildConfig, local.properties, or environment variables.
 
 ## Session Management
 

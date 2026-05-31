@@ -3,17 +3,17 @@ package com.pulsekit.android.networking
 import com.pulsekit.core.api.config.PulseKitConfig
 import com.pulsekit.core.api.logging.PulseKitLogger
 import com.pulsekit.core.api.networking.EventBatchSender
-import java.net.HttpURLConnection
-import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 
 /**
  * Android implementation of [EventBatchSender] using HttpURLConnection.
  * POSTs batch JSON to config.baseUrl + /v1/events.
  */
 internal class AndroidEventBatchSender(
-    private val config: PulseKitConfig
+    private val config: PulseKitConfig,
 ) : EventBatchSender {
 
     override suspend fun sendBatch(jsonPayload: String): Boolean = withContext(Dispatchers.IO) {

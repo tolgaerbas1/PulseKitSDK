@@ -5,29 +5,29 @@ import kotlinx.datetime.Instant
 
 /**
  * Base class for all PulseKit events.
- * 
+ *
  * All events must extend this sealed class to ensure type safety
  * and prevent arbitrary event types from being tracked.
  */
 public sealed class PulseEvent {
-    
+
     /**
      * Unique identifier for this event instance.
      * Generated automatically when the event is created.
      */
     public val eventId: EventId = EventId.generate()
-    
+
     /**
      * Timestamp when the event was created.
      */
     public val timestamp: Instant = kotlinx.datetime.Clock.System.now()
-    
+
     /**
      * Optional name for grouping related events.
      * Useful for analytics and filtering.
      */
     public abstract val eventName: String
-    
+
     /**
      * Optional metadata associated with this event.
      * Can be used to add context-specific information.
@@ -37,7 +37,7 @@ public sealed class PulseEvent {
 
 /**
  * Custom event for tracking arbitrary user actions.
- * 
+ *
  * Use this for application-specific events that don't fit
  * into the predefined event types.
  */
@@ -45,7 +45,7 @@ public class CustomEvent(
     override val eventName: String,
     override val metadata: Map<String, String> = emptyMap(),
     public val value: Double? = null,
-    public val category: String? = null
+    public val category: String? = null,
 ) : PulseEvent()
 
 /**
@@ -55,9 +55,9 @@ public class EngagementEvent(
     public val action: EngagementAction,
     public val target: String? = null,
     public val duration: kotlin.time.Duration? = null,
-    override val metadata: Map<String, String> = emptyMap()
+    override val metadata: Map<String, String> = emptyMap(),
 ) : PulseEvent() {
-    
+
     override val eventName: String = "engagement_${action.name.lowercase()}"
 }
 
@@ -67,9 +67,9 @@ public class EngagementEvent(
 public class LifecycleEvent(
     public val action: LifecycleAction,
     public val component: String,
-    override val metadata: Map<String, String> = emptyMap()
+    override val metadata: Map<String, String> = emptyMap(),
 ) : PulseEvent() {
-    
+
     override val eventName: String = "lifecycle_${action.name.lowercase()}"
 }
 
@@ -80,9 +80,9 @@ public class PerformanceEvent(
     public val metric: String,
     public val value: Double,
     public val unit: String,
-    override val metadata: Map<String, String> = emptyMap()
+    override val metadata: Map<String, String> = emptyMap(),
 ) : PulseEvent() {
-    
+
     override val eventName: String = "performance_$metric"
 }
 
@@ -94,9 +94,9 @@ public class ErrorEvent(
     public val message: String,
     public val stackTrace: String? = null,
     public val isFatal: Boolean = false,
-    override val metadata: Map<String, String> = emptyMap()
+    override val metadata: Map<String, String> = emptyMap(),
 ) : PulseEvent() {
-    
+
     override val eventName: String = "error_${errorType.name.lowercase()}"
 }
 
@@ -106,9 +106,9 @@ public class ErrorEvent(
 public class SessionEvent(
     public val action: SessionAction,
     public val sessionId: SessionId,
-    override val metadata: Map<String, String> = emptyMap()
+    override val metadata: Map<String, String> = emptyMap(),
 ) : PulseEvent() {
-    
+
     override val eventName: String = "session_${action.name.lowercase()}"
 }
 
@@ -129,7 +129,7 @@ public enum class EngagementAction {
     ERROR,
     CRASH,
     SESSION_START,
-    SESSION_END
+    SESSION_END,
 }
 
 /**
@@ -143,7 +143,7 @@ public enum class LifecycleAction {
     CREATE,
     DESTROY,
     FOREGROUND,
-    BACKGROUND
+    BACKGROUND,
 }
 
 /**
@@ -155,7 +155,7 @@ public enum class ErrorType {
     MEMORY,
     PERMISSION,
     CONFIGURATION,
-    UNKNOWN
+    UNKNOWN,
 }
 
 /**
@@ -166,7 +166,7 @@ public enum class SessionAction {
     END,
     TIMEOUT,
     CRASH,
-    RESUME
+    RESUME,
 }
 
 /**
@@ -177,36 +177,36 @@ public fun PulseEvent.withMetadata(metadata: Map<String, String>): PulseEvent = 
         eventName = eventName,
         metadata = metadata,
         value = value,
-        category = category
+        category = category,
     )
     is EngagementEvent -> EngagementEvent(
         action = action,
         target = target,
         duration = duration,
-        metadata = metadata
+        metadata = metadata,
     )
     is PerformanceEvent -> PerformanceEvent(
         metric = metric,
         value = value,
         unit = unit,
-        metadata = metadata
+        metadata = metadata,
     )
     is ErrorEvent -> ErrorEvent(
         errorType = errorType,
         message = message,
         stackTrace = stackTrace,
         isFatal = isFatal,
-        metadata = metadata
+        metadata = metadata,
     )
     is LifecycleEvent -> LifecycleEvent(
         action = action,
         component = component,
-        metadata = metadata
+        metadata = metadata,
     )
     is SessionEvent -> SessionEvent(
         action = action,
         sessionId = sessionId,
-        metadata = metadata
+        metadata = metadata,
     )
 }
 
@@ -215,10 +215,10 @@ public fun PulseEvent.withMetadata(metadata: Map<String, String>): PulseEvent = 
  */
 @JvmInline
 public value class EventId(public val value: String) {
-    
+
     public companion object {
         public fun generate(): EventId = EventId(
-            "evt_${kotlinx.datetime.Clock.System.now().epochSeconds}_${(0..999).random()}"
+            "evt_${kotlinx.datetime.Clock.System.now().epochSeconds}_${(0..999).random()}",
         )
     }
 }

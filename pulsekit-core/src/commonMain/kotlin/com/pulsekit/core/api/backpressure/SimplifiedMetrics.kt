@@ -12,17 +12,17 @@ data class SimplifiedMetrics(
     val lastDropReason: String?,
     val lastDropTime: Instant?,
     val memoryUtilization: Double,
-    val diskUtilization: Double
+    val diskUtilization: Double,
 )
 
 /**
  * Simplified metrics for internal debugging and monitoring.
- * 
+ *
  * This focuses on essential metrics needed for debugging
  * without overengineering the telemetry SDK.
  */
 internal class SimplifiedMetricsCollector {
-    
+
     private var memoryDroppedCount: Long = 0
     private var diskDroppedCount: Long = 0
     private var priorityDroppedCount: Long = 0
@@ -30,7 +30,7 @@ internal class SimplifiedMetricsCollector {
     private var lastDropTime: Instant? = null
     private var memoryUtilization: Double = 0.0
     private var diskUtilization: Double = 0.0
-    
+
     /**
      * Record events dropped from memory queue.
      */
@@ -39,7 +39,7 @@ internal class SimplifiedMetricsCollector {
         lastDropReason = reason
         lastDropTime = kotlinx.datetime.Clock.System.now()
     }
-    
+
     /**
      * Record events dropped from disk queue.
      */
@@ -48,7 +48,7 @@ internal class SimplifiedMetricsCollector {
         lastDropReason = reason
         lastDropTime = kotlinx.datetime.Clock.System.now()
     }
-    
+
     /**
      * Record events dropped by priority.
      */
@@ -57,7 +57,7 @@ internal class SimplifiedMetricsCollector {
         lastDropReason = reason
         lastDropTime = kotlinx.datetime.Clock.System.now()
     }
-    
+
     /**
      * Update utilization metrics.
      */
@@ -65,12 +65,12 @@ internal class SimplifiedMetricsCollector {
         memorySize: Int,
         memoryCapacity: Int,
         diskSize: Int,
-        diskCapacity: Int
+        diskCapacity: Int,
     ) {
         memoryUtilization = memorySize.toDouble() / memoryCapacity
         diskUtilization = diskSize.toDouble() / diskCapacity
     }
-    
+
     /**
      * Get current metrics.
      */
@@ -82,10 +82,10 @@ internal class SimplifiedMetricsCollector {
             lastDropReason = lastDropReason,
             lastDropTime = lastDropTime,
             memoryUtilization = memoryUtilization,
-            diskUtilization = diskUtilization
+            diskUtilization = diskUtilization,
         )
     }
-    
+
     /**
      * Reset all metrics.
      */

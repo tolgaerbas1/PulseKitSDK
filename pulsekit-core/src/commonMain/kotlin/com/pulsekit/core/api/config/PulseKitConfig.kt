@@ -1,14 +1,14 @@
 package com.pulsekit.core.api.config
 
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.hours
 import com.pulsekit.core.api.backpressure.BackpressureConfig
 import com.pulsekit.core.api.backpressure.DropPolicy
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Configuration for PulseKit SDK.
- * 
+ *
  * Use the DSL builder pattern for clean configuration:
  * ```kotlin
  * val config = PulseKitConfig {
@@ -24,86 +24,86 @@ public data class PulseKitConfig(
      * Required for production use.
      */
     public val apiKey: String? = null,
-    
+
     /**
      * Base URL for the PulseKit API endpoints.
      * Defaults to the production PulseKit servers.
      */
     public val baseUrl: String = "https://api.pulsekit.dev",
-    
+
     /**
      * Enable debug logging for development and troubleshooting.
      * Should be disabled in production builds.
      */
     public val enableDebugLogging: Boolean = false,
-    
+
     /**
      * Maximum number of events to queue locally before forcing a flush.
      * Prevents excessive memory usage and ensures timely data delivery.
      */
     public val maxQueueSize: Int = 1000,
-    
+
     /**
      * Time interval between automatic batch flushes.
      * Events are automatically sent in batches at this interval.
      */
     public val flushInterval: Duration = 5.minutes,
-    
+
     /**
      * Maximum age of events before they are discarded.
      * Prevents sending stale data when offline for extended periods.
      */
     public val maxEventAge: Duration = 24.hours,
-    
+
     /**
      * Session timeout duration.
      * If no events are tracked for this duration, the session is considered ended.
      */
     public val sessionTimeout: Duration = 30.minutes,
-    
+
     /**
      * Enable automatic session management.
      * When true, sessions are automatically started/ended based on app lifecycle.
      */
     public val enableAutoSessionManagement: Boolean = true,
-    
+
     /**
      * Enable offline-first mode.
      * When true, events are queued locally when offline and sent when connectivity is restored.
      */
     public val enableOfflineQueueing: Boolean = true,
-    
+
     /**
      * Enable disk persistence for events.
      * When true, events are stored on disk and persist across app restarts.
      * Requires enableOfflineQueueing to be true.
      */
     public val enableDiskPersistence: Boolean = true,
-    
+
     /**
      * Maximum database size in bytes before automatic cleanup.
      * When exceeded, oldest events will be removed to free space.
      */
     public val maxDatabaseSize: Long = 50 * 1024 * 1024, // 50MB
-    
+
     /**
      * Database cleanup interval.
      * How often to run cleanup tasks like removing expired events.
      */
     public val databaseCleanupInterval: Duration = 1.hours,
-    
+
     /**
      * Custom user agent string for API requests.
      * Useful for identifying different app versions or platforms.
      */
     public val userAgent: String? = null,
-    
+
     /**
      * Additional metadata to include with all events.
      * Useful for app-specific context that should be tracked globally.
      */
     public val globalMetadata: Map<String, String> = emptyMap(),
-    
+
     /**
      * Enable automatic crash reporting via default UncaughtExceptionHandler.
      * When true, uncaught exceptions are tracked as fatal ErrorEvents before delegating to the previous handler.
@@ -115,9 +115,9 @@ public data class PulseKitConfig(
      * Backpressure configuration for queue management.
      * Controls how events are dropped when queues become full.
      */
-    val backpressureConfig: BackpressureConfig = BackpressureConfig()
+    val backpressureConfig: BackpressureConfig = BackpressureConfig(),
 ) {
-    
+
     public companion object {
         /**
          * Create a default configuration for development.
@@ -125,16 +125,16 @@ public data class PulseKitConfig(
         public fun development(): PulseKitConfig = PulseKitConfig(
             enableDebugLogging = true,
             enableAutoSessionManagement = true,
-            enableOfflineQueueing = true
+            enableOfflineQueueing = true,
         )
-        
+
         /**
          * Create a default configuration for production.
          */
         public fun production(): PulseKitConfig = PulseKitConfig(
             enableDebugLogging = false,
             enableAutoSessionManagement = true,
-            enableOfflineQueueing = true
+            enableOfflineQueueing = true,
         )
     }
 }
@@ -165,7 +165,7 @@ public class PulseKitConfigBuilder {
     public var databaseCleanupInterval: Duration = 1.hours
     public var userAgent: String? = null
     public var globalMetadata: MutableMap<String, String> = mutableMapOf()
-    
+
     // Backpressure configuration
     public var maxInMemoryQueueSize: Int = 1000
     public var maxDiskQueueSize: Int = 10000
@@ -178,11 +178,11 @@ public class PulseKitConfigBuilder {
     public fun metadata(key: String, value: String) {
         globalMetadata[key] = value
     }
-    
+
     public fun metadata(metadata: Map<String, String>) {
         globalMetadata.putAll(metadata)
     }
-    
+
     public fun build(): PulseKitConfig = PulseKitConfig(
         apiKey = apiKey,
         baseUrl = baseUrl,
@@ -206,7 +206,7 @@ public class PulseKitConfigBuilder {
             enablePriorityDropping = enablePriorityDropping,
             backpressureThreshold = backpressureThreshold,
             dropWhenDiskFull = dropWhenDiskFull,
-            maxEventRetries = maxEventRetries
-        )
+            maxEventRetries = maxEventRetries,
+        ),
     )
 }

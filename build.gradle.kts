@@ -48,7 +48,7 @@ subprojects {
 tasks.register<org.jetbrains.dokka.gradle.DokkaTask>("dokkaHtmlMultiModule") {
     outputDirectory.set(layout.buildDirectory.dir("dokka/htmlMultiModule"))
     moduleName.set("PulseKit")
-    
+
     dokkaSourceSets {
         configureEach {
             includes.from("Module.md")
@@ -65,12 +65,12 @@ tasks.register<org.jetbrains.dokka.gradle.DokkaTask>("dokkaHtmlMultiModule") {
 tasks.register("validateAllModules") {
     description = "Validates all modules for publishing"
     group = "publishing"
-    
+
     dependsOn(
         ":pulsekit-core:validatePublishing",
-        ":pulsekit-android:validatePublishing"
+        ":pulsekit-android:validatePublishing",
     )
-    
+
     doLast {
         println("✅ All modules are ready for publishing")
     }
@@ -80,15 +80,15 @@ tasks.register("validateAllModules") {
 tasks.register("checkAllModulesReady") {
     description = "Checks if all modules are ready for publishing"
     group = "publishing"
-    
+
     dependsOn(
         "validateAllModules",
         ":pulsekit-core:test",
         ":pulsekit-android:test",
         "dokkaHtmlMultiModule",
-        "checkApiCompatibility"
+        "checkApiCompatibility",
     )
-    
+
     doLast {
         println("🚀 All modules are ready for publishing to Maven Central")
     }
@@ -98,12 +98,12 @@ tasks.register("checkAllModulesReady") {
 tasks.register("checkApiCompatibility") {
     description = "Check API compatibility for all modules"
     group = "verification"
-    
+
     dependsOn(
         ":pulsekit-core:checkApiCompatibility",
-        ":pulsekit-android:checkApiCompatibility"
+        ":pulsekit-android:checkApiCompatibility",
     )
-    
+
     doLast {
         println("✅ API compatibility check completed for all modules")
     }
@@ -113,13 +113,13 @@ tasks.register("checkApiCompatibility") {
 tasks.register("checkBinaryCompatibility") {
     description = "Check binary compatibility for all modules"
     group = "verification"
-    
+
     dependsOn(
         ":pulsekit-core:japicmpJvm",
         ":pulsekit-core:japicmpAndroidRelease",
-        ":pulsekit-android:japicmpRelease"
+        ":pulsekit-android:japicmpRelease",
     )
-    
+
     doLast {
         println("✅ Binary compatibility check completed for all modules")
     }
@@ -129,12 +129,12 @@ tasks.register("checkBinaryCompatibility") {
 tasks.register("updateApiBaselines") {
     description = "Update API baselines for all modules"
     group = "api-compatibility"
-    
+
     dependsOn(
         ":pulsekit-core:updateApiBaseline",
-        ":pulsekit-android:updateApiBaseline"
+        ":pulsekit-android:updateApiBaseline",
     )
-    
+
     doLast {
         println("✅ API baselines updated for all modules")
     }

@@ -12,87 +12,87 @@ import kotlinx.coroutines.launch
 
 /**
  * Manages user sessions with automatic timeout handling.
- * 
+ *
  * Sessions are automatically started and ended based on activity
  * and configured timeout values.
  */
 public class SessionManager(
     private val config: PulseKitConfig,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
 ) {
 
     private var currentSession: Session? = null
     private var timeoutJob: Job? = null
     private var sessionListener: SessionListener? = null
     private var onTrackEvent: ((PulseEvent) -> Unit)? = null
-    
+
     /**
      * Start a new session.
-     * 
+     *
      * If a session is already active, it will be ended first.
      */
     public fun startNewSession() {
         endCurrentSession()
-        
+
         val sessionId = SessionId.generate()
         val session = Session(
             id = sessionId,
             startTime = kotlinx.datetime.Clock.System.now(),
-            metadata = config.globalMetadata
+            metadata = config.globalMetadata,
         )
-        
+
         currentSession = session
         startTimeoutTimer()
-        
+
         sessionListener?.onSessionStarted(
             com.pulsekit.core.api.events.SessionInfo(
                 sessionId = session.id.value,
                 startTime = session.startTime.toEpochMilliseconds(),
                 endTime = session.endTime?.toEpochMilliseconds(),
-                isActive = session.endTime == null
-            )
+                isActive = session.endTime == null,
+            ),
         )
         onTrackEvent?.invoke(
             LifecycleEvent(
                 action = LifecycleAction.START,
                 component = "session",
-                metadata = mapOf("session_id" to session.id.value)
-            )
+                metadata = mapOf("session_id" to session.id.value),
+            ),
         )
     }
-    
+
     /**
      * End the current session if one exists.
      */
     public fun endCurrentSession() {
         currentSession?.let { session ->
             cancelTimeoutTimer()
-            
+
             val endTime = kotlinx.datetime.Clock.System.now()
             val completedSession = session.copy(
                 endTime = endTime,
-                duration = endTime - session.startTime
+                duration = endTime - session.startTime,
             )
-            
+
             sessionListener?.onSessionEnded(
                 com.pulsekit.core.api.events.SessionInfo(
                     sessionId = completedSession.id.value,
                     startTime = completedSession.startTime.toEpochMilliseconds(),
                     endTime = completedSession.endTime?.toEpochMilliseconds(),
-                    isActive = completedSession.endTime == null
-                )
+                    isActive = completedSession.endTime == null,
+                ),
             )
             onTrackEvent?.invoke(
                 LifecycleEvent(
                     action = LifecycleAction.STOP,
                     component = "session",
-                    metadata = mapOf("session_id" to completedSession.id.value)
-                )
+                    metadata = mapOf("session_id" to completedSession.id.value),
+                ),
             )
             currentSession = null
         }
     }
-    
+
     /**
      * Get information about the current session.
      */
@@ -102,14 +102,14 @@ public class SessionManager(
                 sessionId = session.id.value,
                 startTime = session.startTime.toEpochMilliseconds(),
                 endTime = session.endTime?.toEpochMilliseconds(),
-                isActive = session.endTime == null
+                isActive = session.endTime == null,
             )
         }
     }
-    
+
     /**
      * Refresh the session timeout.
-     * 
+     *
      * Call this when user activity is detected to prevent session timeout.
      */
     public fun refreshSession() {
@@ -118,7 +118,7 @@ public class SessionManager(
             startTimeoutTimer()
         }
     }
-    
+
     /**
      * Set a listener for session events.
      */
@@ -133,7 +133,7 @@ public class SessionManager(
     internal fun setOnTrackEvent(callback: ((PulseEvent) -> Unit)?) {
         onTrackEvent = callback
     }
-    
+
     /**
      * Clean up resources.
      */
@@ -141,7 +141,7 @@ public class SessionManager(
         endCurrentSession()
         sessionListener = null
     }
-    
+
     private fun startTimeoutTimer() {
         if (config.sessionTimeout.isPositive()) {
             timeoutJob = scope.launch {
@@ -153,15 +153,15 @@ public class SessionManager(
                             sessionId = currentSession!!.id.value,
                             startTime = currentSession!!.startTime.toEpochMilliseconds(),
                             endTime = currentSession!!.endTime?.toEpochMilliseconds(),
-                            isActive = currentSession!!.endTime == null
-                        )
+                            isActive = currentSession!!.endTime == null,
+                        ),
                     )
                     endCurrentSession()
                 }
             }
         }
     }
-    
+
     private fun cancelTimeoutTimer() {
         timeoutJob?.cancel()
         timeoutJob = null
@@ -176,7 +176,7 @@ data class Session(
     val startTime: kotlinx.datetime.Instant,
     val endTime: kotlinx.datetime.Instant? = null,
     val duration: kotlin.time.Duration? = null,
-    val metadata: Map<String, String> = emptyMap()
+    val metadata: Map<String, String> = emptyMap(),
 )
 
 /**
@@ -188,7 +188,7 @@ public data class SessionInfo(
     public val endTime: kotlinx.datetime.Instant?,
     public val duration: kotlin.time.Duration,
     public val isActive: Boolean,
-    public val metadata: Map<String, String>
+    public val metadata: Map<String, String>,
 )
 
 /**
@@ -196,10 +196,10 @@ public data class SessionInfo(
  */
 @JvmInline
 public value class SessionId(public val value: String) {
-    
+
     public companion object {
         public fun generate(): SessionId = SessionId(
-            "sess_${kotlinx.datetime.Clock.System.now().epochSeconds}_${(0..999).random()}"
+            "sess_${kotlinx.datetime.Clock.System.now().epochSeconds}_${(0..999).random()}",
         )
     }
 }
@@ -208,17 +208,17 @@ public value class SessionId(public val value: String) {
  * Listener for session lifecycle events.
  */
 public interface SessionListener {
-    
+
     /**
      * Called when a new session starts.
      */
     public fun onSessionStarted(session: com.pulsekit.core.api.events.SessionInfo) {}
-    
+
     /**
      * Called when a session ends normally.
      */
     public fun onSessionEnded(session: com.pulsekit.core.api.events.SessionInfo) {}
-    
+
     /**
      * Called when a session times out due to inactivity.
      */

@@ -8,19 +8,19 @@ import kotlinx.coroutines.launch
 
 /**
  * Simplified feature flag system for remote behavior control.
- * 
+ *
  * This implementation focuses on the core telemetry needs without overengineering.
  * Uses simple in-memory storage with periodic server refresh.
  */
 internal class SimplifiedFeatureFlags(
     private val config: PulseKitConfig,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
 ) {
-    
+
     private val flags = mutableMapOf<String, Any>()
     private var lastRefresh = 0L
     private var refreshJob: kotlinx.coroutines.Job? = null
-    
+
     // Default values for when server is unavailable
     private val defaults = mapOf(
         "event_batch_size" to 50,
@@ -28,13 +28,13 @@ internal class SimplifiedFeatureFlags(
         "max_retry_attempts" to 3,
         "session_timeout_minutes" to 30,
         "offline_queueing" to true,
-        "debug_logging" to false
+        "debug_logging" to false,
     )
-    
+
     init {
         startPeriodicRefresh()
     }
-    
+
     /**
      * Get boolean flag value with fallback to default.
      */
@@ -46,7 +46,7 @@ internal class SimplifiedFeatureFlags(
             flags[key] as? Boolean ?: default
         }
     }
-    
+
     /**
      * Get integer flag value with fallback to default.
      */
@@ -58,7 +58,7 @@ internal class SimplifiedFeatureFlags(
             flags[key] as? Long ?: default
         }
     }
-    
+
     /**
      * Get double flag value with fallback to default.
      */
@@ -70,7 +70,7 @@ internal class SimplifiedFeatureFlags(
             flags[key] as? Double ?: default
         }
     }
-    
+
     /**
      * Get string flag value with fallback to default.
      */
@@ -82,7 +82,7 @@ internal class SimplifiedFeatureFlags(
             flags[key] as? String ?: default
         }
     }
-    
+
     /**
      * Update flags from server response.
      */
@@ -93,30 +93,30 @@ internal class SimplifiedFeatureFlags(
         refreshJob?.cancel()
         startPeriodicRefresh()
     }
-    
+
     /**
      * Check if refresh is needed.
      */
     private fun shouldRefresh(): Boolean {
         return System.currentTimeMillis() - lastRefresh > 300_000 // 5 minutes
     }
-    
+
     /**
      * Refresh flags from server.
      */
     private fun refreshFromServer() {
         lastRefresh = System.currentTimeMillis()
-        
+
         // This would make a network call to fetch flags
         // For now, we'll use defaults
         flags.clear()
         flags.putAll(defaults)
-        
+
         if (config.enableDebugLogging) {
             PulseKitLogger.log("PulseKit", "Feature flags refreshed from defaults")
         }
     }
-    
+
     /**
      * Start periodic refresh in background.
      */
@@ -129,7 +129,7 @@ internal class SimplifiedFeatureFlags(
             }
         }
     }
-    
+
     /**
      * Cleanup resources.
      */

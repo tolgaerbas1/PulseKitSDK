@@ -15,7 +15,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 private val json = Json {
@@ -39,7 +38,7 @@ internal object EventSerializer {
         val serializableEvent = event.toSerializable()
         return json.encodeToString(SerializablePulseEvent.serializer(), serializableEvent)
     }
-    
+
     /**
      * Deserialize a JSON string back to PulseEvent.
      */
@@ -47,7 +46,7 @@ internal object EventSerializer {
         val serializableEvent = json.decodeFromString(SerializablePulseEvent.serializer(), jsonString)
         return serializableEvent.toPulseEvent()
     }
-    
+
     /**
      * Serialize a batch of events to a JSON array string.
      */
@@ -81,35 +80,35 @@ internal data class SerializablePulseEvent(
     val timestamp: String,
     val eventName: String,
     val metadata: Map<String, String>,
-    val data: JsonElement? = null
+    val data: JsonElement? = null,
 ) {
-    
+
     fun toPulseEvent(): PulseEvent {
         return when (eventType) {
             "custom" -> data?.let { json.decodeFromJsonElement<CustomEventData>(it) }
                 ?.toCustomEvent(eventId, timestamp, eventName, metadata)
                 ?: throw IllegalArgumentException("Missing custom event data")
-            
+
             "engagement" -> data?.let { json.decodeFromJsonElement<EngagementEventData>(it) }
                 ?.toEngagementEvent(eventId, timestamp, eventName, metadata)
                 ?: throw IllegalArgumentException("Missing engagement event data")
-            
+
             "lifecycle" -> data?.let { json.decodeFromJsonElement<LifecycleEventData>(it) }
                 ?.toLifecycleEvent(eventId, timestamp, eventName, metadata)
                 ?: throw IllegalArgumentException("Missing lifecycle event data")
-            
+
             "performance" -> data?.let { json.decodeFromJsonElement<PerformanceEventData>(it) }
                 ?.toPerformanceEvent(eventId, timestamp, eventName, metadata)
                 ?: throw IllegalArgumentException("Missing performance event data")
-            
+
             "error" -> data?.let { json.decodeFromJsonElement<ErrorEventData>(it) }
                 ?.toErrorEvent(eventId, timestamp, eventName, metadata)
                 ?: throw IllegalArgumentException("Missing error event data")
-            
+
             "session" -> data?.let { json.decodeFromJsonElement<SessionEventData>(it) }
                 ?.toSessionEvent(eventId, timestamp, eventName, metadata)
                 ?: throw IllegalArgumentException("Missing session event data")
-            
+
             else -> throw IllegalArgumentException("Unknown event type: $eventType")
         }
     }
@@ -122,46 +121,46 @@ private fun PulseEvent.toSerializable(): SerializablePulseEvent {
     val data = when (this) {
         is CustomEvent -> CustomEventData(
             value = value,
-            category = category
+            category = category,
         ).let { json.encodeToJsonElement(CustomEventData.serializer(), it) }
-        
+
         is EngagementEvent -> EngagementEventData(
             action = action.name,
             target = target,
-            duration = duration?.inWholeMilliseconds
+            duration = duration?.inWholeMilliseconds,
         ).let { json.encodeToJsonElement(EngagementEventData.serializer(), it) }
-        
+
         is LifecycleEvent -> LifecycleEventData(
             action = action.name,
-            component = component
+            component = component,
         ).let { json.encodeToJsonElement(LifecycleEventData.serializer(), it) }
-        
+
         is PerformanceEvent -> PerformanceEventData(
             metric = metric,
             value = value,
-            unit = unit
+            unit = unit,
         ).let { json.encodeToJsonElement(PerformanceEventData.serializer(), it) }
-        
+
         is ErrorEvent -> ErrorEventData(
             errorType = errorType.name,
             message = message,
             stackTrace = stackTrace,
-            isFatal = isFatal
+            isFatal = isFatal,
         ).let { json.encodeToJsonElement(ErrorEventData.serializer(), it) }
-        
+
         is SessionEvent -> SessionEventData(
             action = action.name,
-            sessionId = sessionId.value
+            sessionId = sessionId.value,
         ).let { json.encodeToJsonElement(SessionEventData.serializer(), it) }
     }
-    
+
     return SerializablePulseEvent(
         eventType = EventSerializer.getEventType(this),
         eventId = eventId.value,
         timestamp = timestamp.toString(),
         eventName = eventName,
         metadata = metadata,
-        data = data
+        data = data,
     )
 }
 
@@ -169,14 +168,14 @@ private fun PulseEvent.toSerializable(): SerializablePulseEvent {
 @Serializable
 private data class CustomEventData(
     val value: Double? = null,
-    val category: String? = null
+    val category: String? = null,
 ) {
     fun toCustomEvent(eventId: String, timestamp: String, eventName: String, metadata: Map<String, String>): CustomEvent {
         return CustomEvent(
             eventName = eventName,
             metadata = metadata,
             value = value,
-            category = category
+            category = category,
         )
     }
 }
@@ -185,14 +184,14 @@ private data class CustomEventData(
 private data class EngagementEventData(
     val action: String,
     val target: String? = null,
-    val duration: Long? = null
+    val duration: Long? = null,
 ) {
     fun toEngagementEvent(eventId: String, timestamp: String, eventName: String, metadata: Map<String, String>): EngagementEvent {
         return EngagementEvent(
             action = EngagementAction.valueOf(action),
             target = target,
             duration = duration?.milliseconds,
-            metadata = metadata
+            metadata = metadata,
         )
     }
 }
@@ -200,13 +199,13 @@ private data class EngagementEventData(
 @Serializable
 private data class LifecycleEventData(
     val action: String,
-    val component: String
+    val component: String,
 ) {
     fun toLifecycleEvent(eventId: String, timestamp: String, eventName: String, metadata: Map<String, String>): LifecycleEvent {
         return LifecycleEvent(
             action = LifecycleAction.valueOf(action),
             component = component,
-            metadata = metadata
+            metadata = metadata,
         )
     }
 }
@@ -215,14 +214,14 @@ private data class LifecycleEventData(
 private data class PerformanceEventData(
     val metric: String,
     val value: Double,
-    val unit: String
+    val unit: String,
 ) {
     fun toPerformanceEvent(eventId: String, timestamp: String, eventName: String, metadata: Map<String, String>): PerformanceEvent {
         return PerformanceEvent(
             metric = metric,
             value = value,
             unit = unit,
-            metadata = metadata
+            metadata = metadata,
         )
     }
 }
@@ -232,7 +231,7 @@ private data class ErrorEventData(
     val errorType: String,
     val message: String,
     val stackTrace: String? = null,
-    val isFatal: Boolean = false
+    val isFatal: Boolean = false,
 ) {
     fun toErrorEvent(eventId: String, timestamp: String, eventName: String, metadata: Map<String, String>): ErrorEvent {
         return ErrorEvent(
@@ -240,7 +239,7 @@ private data class ErrorEventData(
             message = message,
             stackTrace = stackTrace,
             isFatal = isFatal,
-            metadata = metadata
+            metadata = metadata,
         )
     }
 }
@@ -248,13 +247,13 @@ private data class ErrorEventData(
 @Serializable
 private data class SessionEventData(
     val action: String,
-    val sessionId: String
+    val sessionId: String,
 ) {
     fun toSessionEvent(eventId: String, timestamp: String, eventName: String, metadata: Map<String, String>): SessionEvent {
         return SessionEvent(
             action = SessionAction.valueOf(action),
             sessionId = com.pulsekit.core.api.session.SessionId(sessionId),
-            metadata = metadata
+            metadata = metadata,
         )
     }
 }

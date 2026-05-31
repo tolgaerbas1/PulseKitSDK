@@ -1,6 +1,6 @@
 /**
  * Version management for PulseKit SDK.
- * 
+ *
  * This file handles semantic versioning, release management,
  * and version bumping automation.
  */
@@ -17,12 +17,12 @@ val isRelease = !isSnapshot
 tasks.register("validateVersion") {
     description = "Validates that the version follows semantic versioning"
     group = "verification"
-    
+
     doLast {
         val versionRegex = Regex("""^\d+\.\d+\.\d+(-SNAPSHOT)?$""")
         if (!versionRegex.matches(pulsekitVersion)) {
             throw GradleException(
-                "Invalid version format: $pulsekitVersion. Expected format: X.Y.Z or X.Y.Z-SNAPSHOT"
+                "Invalid version format: $pulsekitVersion. Expected format: X.Y.Z or X.Y.Z-SNAPSHOT",
             )
         }
         println("✅ Version format is valid: $pulsekitVersion")
@@ -33,7 +33,7 @@ tasks.register("validateVersion") {
 tasks.register("versionPatch") {
     description = "Increments the patch version (X.Y.Z -> X.Y.Z+1)"
     group = "versioning"
-    
+
     doLast {
         val currentVersion = pulsekitVersion.removeSuffix("-SNAPSHOT")
         val parts = currentVersion.split(".")
@@ -45,7 +45,7 @@ tasks.register("versionPatch") {
 tasks.register("versionMinor") {
     description = "Increments the minor version (X.Y.Z -> X.Y+1.0)"
     group = "versioning"
-    
+
     doLast {
         val currentVersion = pulsekitVersion.removeSuffix("-SNAPSHOT")
         val parts = currentVersion.split(".")
@@ -57,7 +57,7 @@ tasks.register("versionMinor") {
 tasks.register("versionMajor") {
     description = "Increments the major version (X.Y.Z -> X+1.0.0)"
     group = "versioning"
-    
+
     doLast {
         val currentVersion = pulsekitVersion.removeSuffix("-SNAPSHOT")
         val parts = currentVersion.split(".")
@@ -69,7 +69,7 @@ tasks.register("versionMajor") {
 tasks.register("versionSnapshot") {
     description = "Adds SNAPSHOT suffix to current version"
     group = "versioning"
-    
+
     doLast {
         val currentVersion = pulsekitVersion.removeSuffix("-SNAPSHOT")
         val newVersion = "$currentVersion-SNAPSHOT"
@@ -80,7 +80,7 @@ tasks.register("versionSnapshot") {
 tasks.register("versionRelease") {
     description = "Removes SNAPSHOT suffix from current version"
     group = "versioning"
-    
+
     doLast {
         val currentVersion = pulsekitVersion.removeSuffix("-SNAPSHOT")
         updateVersion(currentVersion)
@@ -91,16 +91,16 @@ tasks.register("versionRelease") {
 fun updateVersion(newVersion: String) {
     val gradlePropsFile = file("gradle.properties")
     val properties = java.util.Properties()
-    
+
     // Read existing properties
     gradlePropsFile.reader().use { properties.load(it) }
-    
+
     // Update version
     properties["VERSION_NAME"] = newVersion
-    
+
     // Write back to file
     gradlePropsFile.writer().use { properties.store(it, "PulseKit SDK Version") }
-    
+
     println("🔖 Version updated to: $newVersion")
 }
 
@@ -108,9 +108,9 @@ fun updateVersion(newVersion: String) {
 tasks.register("prepareRelease") {
     description = "Prepares the project for release"
     group = "release"
-    
+
     dependsOn("validateVersion", "versionRelease", "checkPublishingReady")
-    
+
     doLast {
         println("🚀 Project is ready for release")
         println("Version: ${project.property("VERSION_NAME")}")
@@ -122,9 +122,9 @@ tasks.register("prepareRelease") {
 tasks.register("prepareSnapshot") {
     description = "Prepares the project for snapshot release"
     group = "release"
-    
+
     dependsOn("validateVersion", "versionSnapshot", "checkPublishingReady")
-    
+
     doLast {
         println("📸 Project is ready for snapshot release")
         println("Version: ${project.property("VERSION_NAME")}")
@@ -136,7 +136,7 @@ tasks.register("prepareSnapshot") {
 tasks.register("versionInfo") {
     description = "Displays current version information"
     group = "information"
-    
+
     doLast {
         println("PulseKit SDK Information:")
         println("  Version: $pulsekitVersion")

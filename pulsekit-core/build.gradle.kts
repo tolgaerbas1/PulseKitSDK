@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.maven.publish)
 }
 
+apply(from = rootProject.file("gradle/jacoco.gradle.kts"))
+
 kotlin {
     jvm {
         jvmToolchain(17)
@@ -86,7 +88,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
         jvmTarget = "1.8"
         freeCompilerArgs += listOf(
             "-opt-in=kotlin.RequiresOptIn",
-            "-Xjvm-default=all"
+            "-Xjvm-default=all",
         )
     }
 }

@@ -7,5 +7,5 @@ enum class PulseKitStatus {
     INITIALIZING,
     READY,
     ERROR,
-    DISABLED
+    DISABLED,
 }

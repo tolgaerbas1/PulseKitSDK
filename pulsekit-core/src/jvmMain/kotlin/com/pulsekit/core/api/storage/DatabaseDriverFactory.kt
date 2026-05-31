@@ -7,12 +7,12 @@ import java.io.File
  * JVM implementation of DatabaseDriverFactory.
  */
 internal actual class DatabaseDriverFactory {
-    
+
     actual fun createDriver(config: PulseKitConfig, context: Any?): DatabaseDriver {
         val databasePath = getDatabasePath(context)
         return SqliteDatabaseDriver(databasePath)
     }
-    
+
     private fun getDatabasePath(context: Any?): String {
         // Try to get a suitable database path
         return when (context) {

@@ -6,7 +6,7 @@ import kotlinx.datetime.Instant
 
 /**
  * Simplified backpressure manager for queue overflow handling.
- * 
+ *
  * This implementation focuses on the core needs of a telemetry SDK:
  * - Prevents unbounded memory growth
  * - Ensures predictable behavior under load
@@ -14,16 +14,16 @@ import kotlinx.datetime.Instant
  */
 internal class SimplifiedBackpressureManager(
     private val config: BackpressureConfig,
-    private val metrics: SimplifiedMetricsCollector
+    private val metrics: SimplifiedMetricsCollector,
 ) {
-    
+
     /**
      * Apply backpressure to a queue when it exceeds capacity.
      */
     fun applyBackpressure(
         queue: MutableList<SimplifiedPriorityEvent>,
         capacity: Int,
-        queueType: String
+        queueType: String,
     ): Int {
         val eventsToDrop = queue.size - capacity
         if (eventsToDrop <= 0) return 0
@@ -37,7 +37,7 @@ internal class SimplifiedBackpressureManager(
         metrics.recordMemoryDrop(droppedCount, "queue_overflow")
         return droppedCount
     }
-    
+
     /**
      * Drop oldest events from the queue.
      */
@@ -50,7 +50,7 @@ internal class SimplifiedBackpressureManager(
         }
         return count
     }
-    
+
     /**
      * Drop newest events from the queue.
      */
@@ -63,7 +63,7 @@ internal class SimplifiedBackpressureManager(
         }
         return count
     }
-    
+
     /**
      * Drop lowest priority events from the queue.
      */
@@ -71,9 +71,9 @@ internal class SimplifiedBackpressureManager(
         // Sort by priority (lowest first) then by timestamp (oldest first)
         queue.sortWith(
             compareBy<SimplifiedPriorityEvent> { it.priority.value }
-                .thenBy { it.timestamp }
+                .thenBy { it.timestamp },
         )
-        
+
         var dropped = 0
         repeat(count) {
             if (queue.isNotEmpty()) {
@@ -83,21 +83,21 @@ internal class SimplifiedBackpressureManager(
         }
         return dropped
     }
-    
+
     /**
      * Check if backpressure should be applied.
      */
     fun shouldApplyBackpressure(currentSize: Int, capacity: Int): Boolean {
         return currentSize > (capacity * config.backpressureThreshold)
     }
-    
+
     /**
      * Get current metrics.
      */
     fun getMetrics(): SimplifiedMetrics {
         return metrics.getMetrics()
     }
-    
+
     /**
      * Update utilization metrics.
      */
@@ -105,11 +105,11 @@ internal class SimplifiedBackpressureManager(
         memorySize: Int,
         memoryCapacity: Int,
         diskSize: Int,
-        diskCapacity: Int
+        diskCapacity: Int,
     ) {
         metrics.updateUtilization(memorySize, memoryCapacity, diskSize, diskCapacity)
     }
-    
+
     fun reset() {
         metrics.reset()
     }
@@ -122,5 +122,5 @@ data class SimplifiedPriorityEvent(
     val event: PulseEvent,
     val priority: EventPriority,
     val timestamp: Instant = Clock.System.now(),
-    var retryCount: Int = 0
+    var retryCount: Int = 0,
 )

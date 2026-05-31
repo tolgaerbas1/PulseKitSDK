@@ -4,8 +4,8 @@ import com.pulsekit.core.api.config.PulseKitConfig
 import com.pulsekit.core.api.events.CustomEvent
 import com.pulsekit.core.api.events.PulseKitStatus
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -27,8 +27,8 @@ class PulseKitSmokeTest {
             instance.track(
                 CustomEvent(
                     eventName = "smoke_test",
-                    metadata = mapOf("source" to "PulseKitSmokeTest")
-                )
+                    metadata = mapOf("source" to "PulseKitSmokeTest"),
+                ),
             )
             assertEquals(PulseKitStatus.READY, instance.getStatus())
         } finally {

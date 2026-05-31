@@ -2,8 +2,6 @@ package com.pulsekit.core.api.flags
 
 import com.pulsekit.core.api.logging.PulseKitLogger
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,34 +12,34 @@ import kotlin.time.Duration.Companion.minutes
 
 /**
  * Internal feature flag manager.
- * 
+ *
  * This class handles evaluation of feature flags with server overrides
  * while maintaining fast, thread-safe access and fallback to defaults.
- * 
+ *
  * This is completely internal to the SDK and not exposed to users.
  */
 class FeatureFlagManager(
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
 ) {
-    
+
     private val flagValues = mutableMapOf<String, FlagValue>()
     private val lastFetchTime = MutableStateFlow<Instant?>(null)
     private val fetchStatus = MutableStateFlow<FetchStatus>(FetchStatus.NOT_FETCHED)
-    
+
     // Cache for server flag values
     private var serverFlags: Map<String, FlagValue> = emptyMap()
     private var serverFlagsTimestamp: Instant? = null
-    
+
     // Cache expiration time (5 minutes)
     private val cacheExpiration = 5.minutes
-    
+
     init {
         // Initialize with default values
         PulseKitFeatureFlags.ALL_FLAGS.forEach { flag ->
             flagValues[flag.key] = flag.defaultValue
         }
     }
-    
+
     /**
      * Get the current value of a boolean flag.
      */
@@ -59,7 +57,7 @@ class FeatureFlagManager(
             }
         }
     }
-    
+
     /**
      * Get the current value of an integer flag.
      */
@@ -77,7 +75,7 @@ class FeatureFlagManager(
             }
         }
     }
-    
+
     /**
      * Get the current value of a double flag.
      */
@@ -95,7 +93,7 @@ class FeatureFlagManager(
             }
         }
     }
-    
+
     /**
      * Get the current value of a string flag.
      */
@@ -113,7 +111,7 @@ class FeatureFlagManager(
             }
         }
     }
-    
+
     /**
      * Get the current value of a flag (type-safe).
      */
@@ -123,14 +121,14 @@ class FeatureFlagManager(
             // Return cached value while fetching fresh data
             refreshServerFlags()
         }
-        
+
         // Return server value if available, otherwise default
         return serverFlags[flag.key] ?: flagValues[flag.key] ?: flag.defaultValue
     }
-    
+
     /**
      * Update flags from server response.
-     * 
+     *
      * This is called internally by the networking layer.
      */
     fun updateServerFlags(flags: Map<String, FlagValue>) {
@@ -138,22 +136,22 @@ class FeatureFlagManager(
         serverFlagsTimestamp = Clock.System.now()
         lastFetchTime.value = serverFlagsTimestamp
         fetchStatus.value = FetchStatus.SUCCESS
-        
+
         // Track flag fetch success
         trackFlagFetch(true, flags.size)
     }
-    
+
     /**
      * Handle flag fetch failure.
      */
     fun handleFetchFailure(error: Throwable) {
         fetchStatus.value = FetchStatus.FAILED
         lastFetchTime.value = Clock.System.now()
-        
+
         // Track flag fetch failure
         trackFlagFetch(false, 0, error)
     }
-    
+
     /**
      * Force refresh server flags.
      */
@@ -161,9 +159,9 @@ class FeatureFlagManager(
         if (fetchStatus.value == FetchStatus.FETCHING) {
             return // Already fetching
         }
-        
+
         fetchStatus.value = FetchStatus.FETCHING
-        
+
         // This will be handled by the networking layer
         scope.launch {
             try {
@@ -175,7 +173,7 @@ class FeatureFlagManager(
             }
         }
     }
-    
+
     /**
      * Internal method to refresh server flags.
      * This will be implemented by the networking module.
@@ -184,7 +182,7 @@ class FeatureFlagManager(
         // Placeholder - actual implementation in networking module
         // This will be overridden by the Android-specific implementation
     }
-    
+
     /**
      * Check if the cache is expired.
      */
@@ -192,17 +190,17 @@ class FeatureFlagManager(
         val timestamp = serverFlagsTimestamp ?: return true
         return Clock.System.now() - timestamp > cacheExpiration
     }
-    
+
     /**
      * Get the fetch status.
      */
     fun getFetchStatus(): StateFlow<FetchStatus> = fetchStatus.asStateFlow()
-    
+
     /**
      * Get the last fetch time.
      */
     fun getLastFetchTime(): StateFlow<Instant?> = lastFetchTime.asStateFlow()
-    
+
     /**
      * Get all current flag values (for debugging).
      */
@@ -211,7 +209,7 @@ class FeatureFlagManager(
             flag.key to getFlagValue(flag)
         }
     }
-    
+
     /**
      * Get active experimental flags.
      */
@@ -223,7 +221,7 @@ class FeatureFlagManager(
             }
         }.map { it.key }
     }
-    
+
     /**
      * Log type errors for debugging.
      */
@@ -232,7 +230,7 @@ class FeatureFlagManager(
         // For now, we'll just note the issue
         PulseKitLogger.log("PulseKit.Flags", "Feature flag type error: ${flag.key} expected $expectedType but got ${actualValue::class.simpleName}")
     }
-    
+
     /**
      * Track flag fetch metrics.
      */
@@ -245,7 +243,7 @@ class FeatureFlagManager(
             PulseKitLogger.log("PulseKit.Flags", "Feature flags fetch failed: ${error?.message}")
         }
     }
-    
+
     /**
      * Cleanup resources.
      */
@@ -265,5 +263,5 @@ enum class FetchStatus {
     NOT_FETCHED,
     FETCHING,
     SUCCESS,
-    FAILED
+    FAILED,
 }

@@ -4,7 +4,7 @@ import com.pulsekit.core.api.events.PulseEvent
 
 /**
  * Backpressure strategy for managing event queue overflow.
- * 
+ *
  * This system ensures predictable behavior under extreme load
  * while maintaining app stability and data integrity.
  */
@@ -15,32 +15,32 @@ import com.pulsekit.core.api.events.PulseEvent
 enum class DropPolicy {
     /**
      * Drop the oldest events first (default).
-     * 
+     *
      * Trade-off: Loses historical data but preserves recent events.
      * Use case: When recent events are more valuable than historical ones.
      */
     DROP_OLDEST,
-    
+
     /**
      * Drop the newest events first.
-     * 
+     *
      * Trade-off: Preserves historical data but loses recent events.
      * Use case: When historical continuity is more important.
      */
     DROP_NEWEST,
-    
+
     /**
      * Drop lowest priority events first.
-     * 
+     *
      * Trade-off: Preserves high-priority events, drops low-priority ones.
      * Use case: When event importance varies significantly.
      */
-    DROP_LOW_PRIORITY
+    DROP_LOW_PRIORITY,
 }
 
 /**
  * Priority levels for events.
- * 
+ *
  * Higher priority events are less likely to be dropped under backpressure.
  */
 enum class EventPriority {
@@ -49,27 +49,28 @@ enum class EventPriority {
      * Examples: Error events, crash reports, security events.
      */
     CRITICAL(4),
-    
+
     /**
      * High priority events - dropped only under extreme pressure.
      * Examples: Lifecycle events, session events, performance metrics.
      */
     HIGH(3),
-    
+
     /**
      * Medium priority events - dropped before critical/high priority.
      * Examples: Engagement events, user interactions, custom business events.
      */
     MEDIUM(2),
-    
+
     /**
      * Low priority events - dropped first under backpressure.
      * Examples: Debug events, verbose logging, optional analytics.
      */
-    LOW(1);
-    
+    LOW(1),
+    ;
+
     internal val value: Int
-    
+
     constructor(value: Int) {
         this.value = value
     }
@@ -84,31 +85,31 @@ data class BackpressureConfig(
      * Default: 1000 events
      */
     val maxInMemoryQueueSize: Int = 1000,
-    
+
     /**
      * Maximum number of events in disk queue.
      * Default: 10000 events
      */
     val maxDiskQueueSize: Int = 10000,
-    
+
     /**
      * Drop policy for queue overflow.
      * Default: DROP_OLDEST
      */
     val dropPolicy: DropPolicy = DropPolicy.DROP_OLDEST,
-    
+
     /**
      * Enable priority-based dropping.
      * Default: true
      */
     val enablePriorityDropping: Boolean = true,
-    
+
     /**
      * Threshold for triggering backpressure (percentage of capacity).
      * Default: 0.9 (90%)
      */
     val backpressureThreshold: Double = 0.9,
-    
+
     /**
      * Whether to drop events when disk is full.
      * Default: true (prefer stability over data completeness)
@@ -119,7 +120,7 @@ data class BackpressureConfig(
      * Maximum retry attempts for a failed event before dropping.
      * Default: 3
      */
-    val maxEventRetries: Int = 3
+    val maxEventRetries: Int = 3,
 )
 
 /**
@@ -130,43 +131,43 @@ internal data class BackpressureMetrics(
      * Number of events dropped from memory queue.
      */
     val memoryDroppedCount: Long = 0,
-    
+
     /**
      * Number of events dropped from disk queue.
      */
     val diskDroppedCount: Long = 0,
-    
+
     /**
      * Number of events dropped by priority.
      */
     val priorityDroppedCount: Long = 0,
-    
+
     /**
      * Current memory queue utilization.
      */
     val memoryUtilization: Double = 0.0,
-    
+
     /**
      * Current disk queue utilization.
      */
     val diskUtilization: Double = 0.0,
-    
+
     /**
      * Last drop reason.
      */
     val lastDropReason: String? = null,
-    
+
     /**
      * Timestamp of last drop event.
      */
-    val lastDropTimestamp: kotlinx.datetime.Instant? = null
+    val lastDropTimestamp: kotlinx.datetime.Instant? = null,
 )
 
 /**
  * Priority calculator for events.
  */
 internal object EventPriorityCalculator {
-    
+
     /**
      * Calculate priority for an event based on its type and characteristics.
      */
@@ -210,30 +211,30 @@ internal object EventPriorityCalculator {
             }
         }
     }
-    
+
     /**
      * Check if an event should be high priority based on metadata.
      */
     private fun isHighPriorityByMetadata(metadata: Map<String, String>): Boolean {
         return metadata.any { (key, value) ->
-            key.contains("error") || 
-            key.contains("critical") ||
-            value.contains("error") ||
-            value.contains("critical")
+            key.contains("error") ||
+                key.contains("critical") ||
+                value.contains("error") ||
+                value.contains("critical")
         }
     }
-    
+
     /**
      * Check if an event should be low priority based on metadata.
      */
     private fun isLowPriorityByMetadata(metadata: Map<String, String>): Boolean {
         return metadata.any { (key, value) ->
             key.contains("debug") ||
-            key.contains("trace") ||
-            key.contains("verbose") ||
-            value.contains("debug") ||
-            value.contains("trace") ||
-            value.contains("verbose")
+                key.contains("trace") ||
+                key.contains("verbose") ||
+                value.contains("debug") ||
+                value.contains("trace") ||
+                value.contains("verbose")
         }
     }
 }
@@ -242,32 +243,32 @@ internal object EventPriorityCalculator {
  * Backpressure manager for queue overflow handling.
  */
 internal class BackpressureManager(
-    private val config: BackpressureConfig
+    private val config: BackpressureConfig,
 ) {
-    
+
     private var metrics = BackpressureMetrics()
-    
+
     /**
      * Apply backpressure to a queue when it exceeds capacity.
      */
     fun applyBackpressure(
         queue: MutableList<PriorityEvent>,
         capacity: Int,
-        queueType: String
+        queueType: String,
     ): Int {
         val eventsToDrop = queue.size - capacity
         if (eventsToDrop <= 0) return 0
-        
+
         val droppedCount = when (config.dropPolicy) {
             DropPolicy.DROP_OLDEST -> dropOldest(queue, eventsToDrop)
             DropPolicy.DROP_NEWEST -> dropNewest(queue, eventsToDrop)
             DropPolicy.DROP_LOW_PRIORITY -> dropLowPriority(queue, eventsToDrop)
         }
-        
+
         updateMetrics(droppedCount, queueType, "queue_overflow")
         return droppedCount
     }
-    
+
     /**
      * Drop oldest events from the queue.
      */
@@ -281,7 +282,7 @@ internal class BackpressureManager(
         }
         return count
     }
-    
+
     /**
      * Drop newest events from the queue.
      */
@@ -295,7 +296,7 @@ internal class BackpressureManager(
         }
         return count
     }
-    
+
     /**
      * Drop lowest priority events from the queue.
      */
@@ -303,10 +304,10 @@ internal class BackpressureManager(
         if (!config.enablePriorityDropping) {
             return dropOldest(queue, count)
         }
-        
+
         // Sort by priority (lowest first) then by timestamp
         queue.sortWith(compareBy<PriorityEvent> { it.priority.value }.thenBy { it.event.timestamp })
-        
+
         var dropped = 0
         repeat(count) {
             if (queue.isNotEmpty()) {
@@ -316,19 +317,19 @@ internal class BackpressureManager(
         }
         return dropped
     }
-    
+
     /**
      * Check if backpressure should be applied.
      */
     fun shouldApplyBackpressure(currentSize: Int, capacity: Int): Boolean {
         return currentSize > (capacity * config.backpressureThreshold)
     }
-    
+
     /**
      * Get current backpressure metrics.
      */
     fun getMetrics(): BackpressureMetrics = metrics.copy()
-    
+
     /**
      * Update backpressure metrics.
      */
@@ -338,17 +339,17 @@ internal class BackpressureManager(
             diskDroppedCount = if (queueType == "disk") metrics.diskDroppedCount + droppedCount else metrics.diskDroppedCount,
             priorityDroppedCount = if (config.dropPolicy == DropPolicy.DROP_LOW_PRIORITY) metrics.priorityDroppedCount + droppedCount else metrics.priorityDroppedCount,
             lastDropReason = reason,
-            lastDropTimestamp = kotlinx.datetime.Clock.System.now()
+            lastDropTimestamp = kotlinx.datetime.Clock.System.now(),
         )
     }
-    
+
     /**
      * Update utilization metrics.
      */
     fun updateUtilization(memorySize: Int, memoryCapacity: Int, diskSize: Int, diskCapacity: Int) {
         metrics = metrics.copy(
             memoryUtilization = memorySize.toDouble() / memoryCapacity,
-            diskUtilization = diskSize.toDouble() / diskCapacity
+            diskUtilization = diskSize.toDouble() / diskCapacity,
         )
     }
 }
@@ -360,5 +361,5 @@ internal data class PriorityEvent(
     val event: PulseEvent,
     val priority: EventPriority,
     val timestamp: kotlinx.datetime.Instant = kotlinx.datetime.Clock.System.now(),
-    val retryCount: Int = 0
+    val retryCount: Int = 0,
 )

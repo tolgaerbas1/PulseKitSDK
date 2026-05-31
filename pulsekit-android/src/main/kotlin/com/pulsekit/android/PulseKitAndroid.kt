@@ -3,31 +3,34 @@ package com.pulsekit.android
 import android.content.Context
 import android.util.Log
 import com.pulsekit.android.lifecycle.PulseKitLifecycleObserver
+import com.pulsekit.android.lifecycle.SessionLifecycleListener
 import com.pulsekit.android.network.NetworkMonitor
 import com.pulsekit.android.networking.AndroidEventBatchSender
-import com.pulsekit.core.api.events.ErrorEvent
-import com.pulsekit.core.api.events.ErrorType
-import com.pulsekit.core.api.logging.PulseKitLogger
-import com.pulsekit.android.lifecycle.SessionLifecycleListener
-import kotlinx.coroutines.flow.first
 import com.pulsekit.android.storage.AndroidFileFlagStorage
 import com.pulsekit.core.api.PulseKit
 import com.pulsekit.core.api.config.PulseKitConfig
+import com.pulsekit.core.api.events.ErrorEvent
+import com.pulsekit.core.api.events.ErrorType
 import com.pulsekit.core.api.flags.DiskFlagStorage
 import com.pulsekit.core.api.flags.FlagPersistence
 import com.pulsekit.core.api.flags.InMemoryFlagStorage
 import com.pulsekit.core.api.flags.PulseKitFeatureFlags
+import com.pulsekit.core.api.logging.PulseKitLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
  * Android-specific entry point for PulseKit SDK with zero integration work.
- * 
+ *
  * This provides Android-specific initialization and automatic lifecycle integration.
  * The SDK automatically handles session management, lifecycle tracking, and
  * offline-first event persistence without any additional setup required.
- * 
+ *
  * Key features:
  * - Automatic session management based on app lifecycle
  * - Zero configuration required for basic usage
@@ -37,10 +40,14 @@ import kotlinx.coroutines.launch
  * - Server-driven feature flags for remote behavior control
  */
 public object PulseKitAndroid {
-    
+    private var integrationScope: CoroutineScope? = null
+    private var networkMonitoringJob: Job? = null
+    private var crashReportingInstalled: Boolean = false
+    private var previousCrashHandler: Thread.UncaughtExceptionHandler? = null
+
     /**
      * Initialize PulseKit with Android-specific features and zero integration work.
-     * 
+     *
      * This method automatically sets up:
      * - Lifecycle observers for automatic session management
      * - Session timeout monitoring
@@ -48,9 +55,9 @@ public object PulseKitAndroid {
      * - Comprehensive event tracking
      * - Server-driven feature flags
      * - Network connectivity monitoring
-     * 
+     *
      * Simply call this in your Application's onCreate() and everything else is handled.
-     * 
+     *
      * @param context Application context
      * @param config The configuration for PulseKit
      * @param enableLifecycleObserver Whether to enable automatic lifecycle integration
@@ -59,7 +66,7 @@ public object PulseKitAndroid {
     public fun initialize(
         context: Context,
         config: PulseKitConfig = PulseKitConfig(),
-        enableLifecycleObserver: Boolean = true
+        enableLifecycleObserver: Boolean = true,
     ) {
         // Use Android Log for SDK logging when running on Android
         PulseKitLogger.init { tag, message -> Log.d(tag, message) }
@@ -70,9 +77,9 @@ public object PulseKitAndroid {
         if (enableLifecycleObserver && config.enableAutoSessionManagement) {
             PulseKitLifecycleObserver.initialize(context, instance)
         }
-        
+
         // Initialize feature flag system
-        initializeFeatureFlags(context, instance, config)
+        initializeFeatureFlags(context, config)
         // Network connectivity monitoring: flush when back online
         setupNetworkConnectivityMonitoring(context, instance)
         // Opt-in crash reporting: track uncaught exceptions as fatal ErrorEvents
@@ -86,16 +93,30 @@ public object PulseKitAndroid {
      */
     private fun setupNetworkConnectivityMonitoring(
         context: Context,
-        instance: com.pulsekit.core.api.PulseKitInstance
+        instance: com.pulsekit.core.api.PulseKitInstance,
     ) {
-        val monitor = NetworkMonitor.getInstance(context)
-        CoroutineScope(Dispatchers.Default).launch {
-            var wasConnected = monitor.isConnected.first()
-            monitor.isConnected.collect { isConnected ->
-                if (isConnected && !wasConnected) {
-                    instance.flush()
+        if (networkMonitoringJob != null) return
+
+        val monitor = runCatching { NetworkMonitor.getInstance(context) }.getOrElse { error ->
+            if (instance.config.enableDebugLogging) {
+                PulseKitLogger.log("PulseKit", "Network monitoring unavailable: ${error.message}")
+            }
+            return
+        }
+
+        networkMonitoringJob = getIntegrationScope().launch {
+            runCatching {
+                var wasConnected = monitor.isConnected.first()
+                monitor.isConnected.collect { isConnected ->
+                    if (isConnected && !wasConnected) {
+                        instance.flush()
+                    }
+                    wasConnected = isConnected
                 }
-                wasConnected = isConnected
+            }.onFailure { error ->
+                if (instance.config.enableDebugLogging) {
+                    PulseKitLogger.log("PulseKit", "Network monitoring stopped: ${error.message}")
+                }
             }
         }
     }
@@ -105,7 +126,11 @@ public object PulseKitAndroid {
      * then delegates to the previous handler.
      */
     private fun setupCrashReporting(instance: com.pulsekit.core.api.PulseKitInstance) {
+        if (crashReportingInstalled) return
+
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        previousCrashHandler = defaultHandler
+        crashReportingInstalled = true
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             try {
                 instance.track(
@@ -116,9 +141,9 @@ public object PulseKitAndroid {
                         isFatal = true,
                         metadata = mapOf(
                             "thread" to (thread.name ?: "unknown"),
-                            "exception" to (throwable.javaClass.name)
-                        )
-                    )
+                            "exception" to (throwable.javaClass.name),
+                        ),
+                    ),
                 )
             } catch (_: Exception) {
                 // Never let SDK break the app
@@ -126,14 +151,13 @@ public object PulseKitAndroid {
             defaultHandler?.uncaughtException(thread, throwable)
         }
     }
-    
+
     /**
      * Initialize the feature flag system.
      */
     private fun initializeFeatureFlags(
         context: Context,
-        instance: com.pulsekit.core.api.PulseKitInstance,
-        config: PulseKitConfig
+        config: PulseKitConfig,
     ) {
         // Create flag storage based on configuration
         val flagStorage = if (config.enableDiskPersistence) {
@@ -142,72 +166,74 @@ public object PulseKitAndroid {
         } else {
             InMemoryFlagStorage()
         }
-        
+
         // Create flag persistence
         val flagPersistence = FlagPersistence(
             scope = CoroutineScope(Dispatchers.IO),
-            storage = flagStorage
+            storage = flagStorage,
         )
-        
+
         // Load persisted flags
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val persistedFlags = flagPersistence.loadFlags()
-                persistedFlags?.let { flags ->
-                    // Update flag manager with persisted values
-                    // This will be handled by the flag manager
+                if (persistedFlags != null && config.enableDebugLogging) {
+                    PulseKitLogger.log("PulseKit.Flags", "Loaded ${persistedFlags.size} persisted feature flags")
                 }
             } catch (e: Exception) {
                 // Continue with default values if loading fails
+                if (config.enableDebugLogging) {
+                    PulseKitLogger.log("PulseKit.Flags", "Failed to load persisted feature flags: ${e.message}")
+                }
             }
         }
     }
-    
+
     /**
      * Get the Android-specific context if available.
-     * 
+     *
      * @return Application context, or null if not initialized
      */
     public fun getContext(): Context? {
         return PulseKitLifecycleObserver.getContext()
     }
-    
+
     /**
      * Check if PulseKit has been initialized with Android support.
      */
     public val isInitialized: Boolean
         get() = PulseKit.isInitialized
-    
+
     /**
      * Get the underlying PulseKit instance.
      */
     public val instance: com.pulsekit.core.api.PulseKitInstance
         get() = PulseKit.instance
-    
+
     /**
      * Check if the app is currently in foreground.
-     * 
+     *
      * @return true if app is in foreground, false otherwise
      */
     public fun isAppInForeground(): Boolean {
         return PulseKitLifecycleObserver.isAppInForeground()
     }
-    
+
     /**
      * Get current session information.
-     * 
+     *
      * @return Current session info, or null if no active session
      */
     public fun getCurrentSessionInfo(): com.pulsekit.android.lifecycle.SessionInfo? {
         return PulseKitLifecycleObserver.getCurrentSessionInfo()
     }
-    
+
     /**
      * Update activity timestamp to prevent session timeout.
-     * 
+     *
      * Call this when user activity is detected (button clicks, touches, etc.)
      * to ensure the session doesn't timeout due to inactivity.
-     * 
+     *
      * This is optional - the SDK automatically tracks activity during
      * event tracking, but you can call this manually for additional
      * activity signals.
@@ -215,36 +241,52 @@ public object PulseKitAndroid {
     public fun updateActivity() {
         PulseKitLifecycleObserver.updateActivity()
     }
-    
+
     /**
      * Set a listener for detailed session lifecycle events.
-     * 
+     *
      * This allows you to monitor session state changes and implement
      * custom logic based on session lifecycle.
-     * 
+     *
      * @param listener The session lifecycle listener, or null to remove
      */
     public fun setSessionListener(listener: SessionLifecycleListener?) {
         PulseKitLifecycleObserver.setSessionListener(listener)
     }
-    
+
     /**
      * Force cleanup of the lifecycle observer.
-     * 
+     *
      * This is typically only needed for testing or when manually
      * managing the SDK lifecycle. In normal usage, cleanup is handled
      * automatically.
      */
     public fun cleanup() {
         PulseKitLifecycleObserver.cleanup()
+        networkMonitoringJob?.cancel()
+        networkMonitoringJob = null
+        NetworkMonitor.cleanup()
+        integrationScope?.cancel()
+        integrationScope = null
+        if (crashReportingInstalled) {
+            Thread.setDefaultUncaughtExceptionHandler(previousCrashHandler)
+            previousCrashHandler = null
+            crashReportingInstalled = false
+        }
     }
-    
+
+    private fun getIntegrationScope(): CoroutineScope {
+        return integrationScope ?: CoroutineScope(SupervisorJob() + Dispatchers.Default).also {
+            integrationScope = it
+        }
+    }
+
     /**
      * Get current feature flag values for debugging.
-     * 
+     *
      * This method is primarily for debugging and monitoring.
      * The actual flag values are used internally by the SDK.
-     * 
+     *
      * @return Map of flag keys to their current values
      */
     public fun getFeatureFlagValues(): Map<String, Any> {
@@ -263,13 +305,13 @@ public object PulseKitAndroid {
             emptyMap()
         }
     }
-    
+
     /**
      * Check if a specific feature flag is enabled.
-     * 
+     *
      * This method is primarily for debugging and monitoring.
      * The actual flag values are used internally by the SDK.
-     * 
+     *
      * @param flag The feature flag to check
      * @return Current value of the flag
      */

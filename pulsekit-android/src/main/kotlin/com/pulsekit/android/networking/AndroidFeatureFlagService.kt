@@ -16,15 +16,15 @@ import kotlinx.serialization.json.longOrNull
 
 /**
  * Android-specific implementation of feature flag service.
- * 
+ *
  * This service handles network requests for feature flags using Android's
  * networking capabilities and integrates with the Android lifecycle.
  */
 internal class AndroidFeatureFlagService(
     private val networkClient: NetworkClient,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
 ) {
-    
+
     suspend fun fetchFeatureFlags(): Result<FeatureFlagResponse> {
         return try {
             val responseBody = networkClient.get("/api/v1/feature-flags")
@@ -34,7 +34,7 @@ internal class AndroidFeatureFlagService(
             Result.failure(e)
         }
     }
-    
+
     /**
      * Parse feature flag response from JSON.
      */
@@ -43,11 +43,11 @@ internal class AndroidFeatureFlagService(
             ignoreUnknownKeys = true
             isLenient = true
         }
-        
+
         val jsonObject = json.decodeFromString<JsonObject>(jsonBody)
-        
+
         val flags = mutableMapOf<String, com.pulsekit.core.api.flags.FlagValue>()
-        
+
         val flagsObject = jsonObject["flags"] as? JsonObject
         flagsObject?.forEach { (key: String, element: JsonElement) ->
             val flagValue = parseFlagValue(element)
@@ -55,14 +55,14 @@ internal class AndroidFeatureFlagService(
                 flags[key] = flagValue
             }
         }
-        
+
         return FeatureFlagResponse(
             flags = flags,
             timestamp = jsonObject["timestamp"]?.toString()?.toLongOrNull() ?: System.currentTimeMillis(),
-            version = jsonObject["version"]?.toString() ?: "unknown"
+            version = jsonObject["version"]?.toString() ?: "unknown",
         )
     }
-    
+
     /**
      * Parse individual flag value from JSON element.
      */
@@ -80,7 +80,7 @@ internal class AndroidFeatureFlagService(
             else -> null
         }
     }
-    
+
     /**
      * Update flag manager with server values.
      */
@@ -108,5 +108,5 @@ internal class AndroidFeatureFlagService(
 internal data class FeatureFlagResponse(
     val flags: Map<String, com.pulsekit.core.api.flags.FlagValue>,
     val timestamp: Long,
-    val version: String
+    val version: String,
 )

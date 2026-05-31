@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * Internal feature flag definition.
- * 
+ *
  * Feature flags are internal-only and not exposed to SDK users.
  * They allow remote control of SDK behavior without API changes.
  */
@@ -15,26 +15,26 @@ data class FeatureFlag(
      * Unique identifier for the flag.
      */
     val key: String,
-    
+
     /**
      * Default value when server is unavailable.
      */
     @Contextual val defaultValue: FlagValue,
-    
+
     /**
      * Description of what the flag controls.
      */
     val description: String,
-    
+
     /**
      * Expected data type for this flag.
      */
     val type: FlagType,
-    
+
     /**
      * Whether this flag is experimental.
      */
-    val isExperimental: Boolean = false
+    val isExperimental: Boolean = false,
 )
 
 /**
@@ -44,7 +44,7 @@ enum class FlagType {
     BOOLEAN,
     INTEGER,
     DOUBLE,
-    STRING
+    STRING,
 }
 
 /**
@@ -67,11 +67,11 @@ sealed class FlagValue {
 
 /**
  * Predefined feature flags for PulseKit.
- * 
+ *
  * These flags control internal SDK behavior and are not exposed to users.
  */
 object PulseKitFeatureFlags {
-    
+
     /**
      * Controls the maximum batch size for event sending.
      * Default: 50 events
@@ -80,9 +80,9 @@ object PulseKitFeatureFlags {
         key = "event_batch_size",
         defaultValue = FlagValue.IntegerValue(50L),
         description = "Maximum number of events to send in a single batch",
-        type = FlagType.INTEGER
+        type = FlagType.INTEGER,
     )
-    
+
     /**
      * Controls whether event compression is enabled.
      * Default: true
@@ -91,9 +91,9 @@ object PulseKitFeatureFlags {
         key = "event_compression",
         defaultValue = FlagValue.BooleanValue(true),
         description = "Enable compression of event payloads",
-        type = FlagType.BOOLEAN
+        type = FlagType.BOOLEAN,
     )
-    
+
     /**
      * Controls the maximum retry attempts for failed events.
      * Default: 3 attempts
@@ -102,9 +102,9 @@ object PulseKitFeatureFlags {
         key = "max_retry_attempts",
         defaultValue = FlagValue.IntegerValue(3L),
         description = "Maximum number of retry attempts for failed events",
-        type = FlagType.INTEGER
+        type = FlagType.INTEGER,
     )
-    
+
     /**
      * Controls whether exponential backoff is enabled for retries.
      * Default: true
@@ -113,9 +113,9 @@ object PulseKitFeatureFlags {
         key = "exponential_backoff",
         defaultValue = FlagValue.BooleanValue(true),
         description = "Enable exponential backoff for retry logic",
-        type = FlagType.BOOLEAN
+        type = FlagType.BOOLEAN,
     )
-    
+
     /**
      * Controls the session timeout duration in minutes.
      * Default: 30 minutes
@@ -124,9 +124,9 @@ object PulseKitFeatureFlags {
         key = "session_timeout_minutes",
         defaultValue = FlagValue.IntegerValue(30L),
         description = "Session timeout duration in minutes",
-        type = FlagType.INTEGER
+        type = FlagType.INTEGER,
     )
-    
+
     /**
      * Controls whether offline queueing is enabled.
      * Default: true
@@ -135,9 +135,9 @@ object PulseKitFeatureFlags {
         key = "offline_queueing",
         defaultValue = FlagValue.BooleanValue(true),
         description = "Enable offline event queueing",
-        type = FlagType.BOOLEAN
+        type = FlagType.BOOLEAN,
     )
-    
+
     /**
      * Controls the maximum queue size for offline events.
      * Default: 1000 events
@@ -146,9 +146,9 @@ object PulseKitFeatureFlags {
         key = "max_queue_size",
         defaultValue = FlagValue.IntegerValue(1000L),
         description = "Maximum number of events to queue offline",
-        type = FlagType.INTEGER
+        type = FlagType.INTEGER,
     )
-    
+
     /**
      * Controls whether disk persistence is enabled.
      * Default: true
@@ -157,9 +157,9 @@ object PulseKitFeatureFlags {
         key = "disk_persistence",
         defaultValue = FlagValue.BooleanValue(true),
         description = "Enable disk persistence for events",
-        type = FlagType.BOOLEAN
+        type = FlagType.BOOLEAN,
     )
-    
+
     /**
      * Controls the flush interval in minutes.
      * Default: 5 minutes
@@ -168,9 +168,9 @@ object PulseKitFeatureFlags {
         key = "flush_interval_minutes",
         defaultValue = FlagValue.IntegerValue(5L),
         description = "Automatic flush interval in minutes",
-        type = FlagType.INTEGER
+        type = FlagType.INTEGER,
     )
-    
+
     /**
      * Controls whether debug logging is enabled.
      * Default: false
@@ -179,9 +179,9 @@ object PulseKitFeatureFlags {
         key = "debug_logging",
         defaultValue = FlagValue.BooleanValue(false),
         description = "Enable debug logging",
-        type = FlagType.BOOLEAN
+        type = FlagType.BOOLEAN,
     )
-    
+
     /**
      * Controls whether network monitoring is enabled.
      * Default: true
@@ -190,9 +190,9 @@ object PulseKitFeatureFlags {
         key = "network_monitoring",
         defaultValue = FlagValue.BooleanValue(true),
         description = "Enable network connectivity monitoring",
-        type = FlagType.BOOLEAN
+        type = FlagType.BOOLEAN,
     )
-    
+
     /**
      * Controls experimental retry logic.
      * Default: false (experimental)
@@ -202,9 +202,9 @@ object PulseKitFeatureFlags {
         defaultValue = FlagValue.BooleanValue(false),
         description = "Enable experimental retry logic",
         type = FlagType.BOOLEAN,
-        isExperimental = true
+        isExperimental = true,
     )
-    
+
     /**
      * Controls experimental event deduplication.
      * Default: false (experimental)
@@ -214,9 +214,9 @@ object PulseKitFeatureFlags {
         defaultValue = FlagValue.BooleanValue(false),
         description = "Enable experimental event deduplication",
         type = FlagType.BOOLEAN,
-        isExperimental = true
+        isExperimental = true,
     )
-    
+
     /**
      * All feature flags for easy iteration.
      */
@@ -233,14 +233,14 @@ object PulseKitFeatureFlags {
         DEBUG_LOGGING,
         NETWORK_MONITORING,
         EXPERIMENTAL_RETRY_LOGIC,
-        EVENT_DEDUPLICATION
+        EVENT_DEDUPLICATION,
     )
-    
+
     /**
      * Get all experimental flags.
      */
     val EXPERIMENTAL_FLAGS = ALL_FLAGS.filter { it.isExperimental }
-    
+
     /**
      * Get all stable flags.
      */

@@ -48,6 +48,20 @@ jobs:
 
     - name: Run tests
       run: ./gradlew test
+
+    - name: Generate Jacoco coverage reports
+      run: ./gradlew :pulsekit-core:jacocoTestReport :pulsekit-android:jacocoTestReport --continue
+      continue-on-error: true
+
+    - name: Upload coverage reports
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-reports
+        path: |
+          **/build/reports/jacoco/**
+          **/build/jacoco/*.exec
+        retention-days: 14
       
     - name: Generate API snapshots
       run: ./gradlew generateApiSnapshot

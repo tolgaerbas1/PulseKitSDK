@@ -36,6 +36,9 @@ sqlite-jdbc = { group = "org.xerial", name = "sqlite-jdbc", version = "3.43.2.2"
 junit = { group = "junit", name = "junit", version = "4.13.2" }
 mockito-core = { group = "org.mockito", name = "mockito-core", version = "5.7.0" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+androidx-test-core = { group = "androidx.test", name = "core", version = "1.5.0" }
+androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version = "1.1.5" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version = "1.5.2" }
 
 # API Compatibility
 japicmp = { group = "me.champeau.japicmp", name = "japicmp", version.ref = "japicmp" }

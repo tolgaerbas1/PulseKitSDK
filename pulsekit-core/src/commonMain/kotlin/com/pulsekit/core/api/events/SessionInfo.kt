@@ -7,5 +7,5 @@ data class SessionInfo(
     val sessionId: String,
     val startTime: Long,
     val endTime: Long?,
-    val isActive: Boolean
+    val isActive: Boolean,
 )

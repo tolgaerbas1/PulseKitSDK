@@ -4,9 +4,9 @@ import com.pulsekit.core.api.config.PulseKitConfig
 import com.pulsekit.core.api.errors.PulseKitError
 import com.pulsekit.core.api.flags.FeatureFlag
 import com.pulsekit.core.api.storage.EventQueue
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -17,7 +17,7 @@ private class TestFlagProvider(
     private val booleanValue: Boolean = true,
     private val longValue: Long = 50L,
     private val doubleValue: Double = 0.0,
-    private val stringValue: String = ""
+    private val stringValue: String = "",
 ) : FlagProvider {
     override fun getBooleanFlag(flag: FeatureFlag): Boolean = booleanValue
     override fun getIntegerFlag(flag: FeatureFlag): Long = longValue
@@ -29,7 +29,7 @@ class EventProcessorTest {
 
     private fun createProcessor(
         config: PulseKitConfig = PulseKitConfig(),
-        flagProvider: FlagProvider = TestFlagProvider()
+        flagProvider: FlagProvider = TestFlagProvider(),
     ): Pair<EventProcessor, EventQueue> {
         val scope = TestScope(StandardTestDispatcher())
         val queue = EventQueue(config, scope)
@@ -44,7 +44,8 @@ class EventProcessorTest {
             processor.process(CustomEvent("", emptyMap()))
             throw AssertionError("Expected PulseKitError.Event.InvalidEvent")
         } catch (e: PulseKitError.Event.InvalidEvent) {
-            assertTrue(e.message!!.contains("blank") || e.message.isNotBlank())
+            val message = e.message.orEmpty()
+            assertTrue(message.contains("blank") || message.isNotBlank())
         }
     }
 
@@ -71,7 +72,8 @@ class EventProcessorTest {
             processor.process(CustomEvent("event", mapOf("key" to longValue)))
             throw AssertionError("Expected InvalidEvent")
         } catch (e: PulseKitError.Event.InvalidEvent) {
-            assertTrue(e.message!!.contains("too long") || e.message.isNotBlank())
+            val message = e.message.orEmpty()
+            assertTrue(message.contains("too long") || message.isNotBlank())
         }
     }
 }

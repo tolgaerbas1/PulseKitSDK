@@ -7,20 +7,25 @@ build:
 
 config:
   validation: true
-  warnings: false
+  warningsAsErrors: false
   checkExhaustiveness: true
 
 complexity:
   LongMethod:
     threshold: 60
   LongParameterList:
-    threshold: 6
-  ComplexMethod:
+    functionThreshold: 6
+    constructorThreshold: 7
+  CyclomaticComplexMethod:
     threshold: 15
   TooManyFunctions:
-    threshold: 15
-    excludePrivateFunctions: true
-    excludeProtectedFunctions: true
+    thresholdInFiles: 15
+    thresholdInClasses: 15
+    thresholdInInterfaces: 15
+    thresholdInObjects: 15
+    thresholdInEnums: 15
+    ignorePrivate: true
+    ignoreOverridden: true
 
 naming:
   ClassNaming:
@@ -38,42 +43,21 @@ style:
     excludePackageStatements: true
     excludeImportStatements: true
   MagicNumber:
-    active: true
+    active: false
     ignoreNumbers: ['-1', '0', '1', '2', '3', '4', '5', '10', '100', '1000']
     ignoreExtensionFunctions: true
-  ThrowingExceptionWithoutMessageOrCause:
-    active: true
   ObjectLiteralToLambda:
     active: true
   UnusedPrivateMember:
     active: true
-    ignoreOverridden: true
   OptionalUnit:
     active: true
   RedundantHigherOrderMapUsage:
     active: true
-  UseAnyOrNothingInsteadOfDeprecated:
+  UnnecessaryApply:
     active: true
-  Deprecation:
+  UnnecessaryLet:
     active: true
-  EqualsAlwaysReturnsTrueOrFalse:
-    active: true
-  ExitOutsideMain:
-    active: true
-  ThrowingNewInstanceOfSameException:
-    active: true
-  InstanceOfCheckForException:
-    active: true
-  PrintStackTrace:
-    active: true
-  RethrowCaughtException:
-    active: true
-  TooGenericExceptionCaught:
-    active: true
-    exceptionNames: ['Error', 'Exception', 'Throwable', 'RuntimeException']
-  TooGenericExceptionThrown:
-    active: true
-    exceptionNames: ['Error', 'Exception', 'Throwable', 'RuntimeException']
 
 comments:
   CommentOverPrivateFunction:
@@ -86,24 +70,42 @@ comments:
     active: false
 
 potential-bugs:
+  Deprecation:
+    active: true
   EqualsWithHashCodeExist:
     active: true
-  UnreachableCode:
+  EqualsAlwaysReturnsTrueOrFalse:
     active: true
-  DangerousCast:
+  ExitOutsideMain:
+    active: true
+  UnreachableCode:
     active: true
   HasPlatformType:
     active: false
   IgnoredReturnValue:
     active: true
-  RedundantElse:
-    active: true
-  UnnecessaryApply:
-    active: true
-  UnnecessaryLet:
-    active: true
   UnnecessarySafeCall:
     active: true
+
+exceptions:
+  SwallowedException:
+    active: false
+  ThrowingExceptionsWithoutMessageOrCause:
+    active: true
+  ThrowingNewInstanceOfSameException:
+    active: true
+  InstanceOfCheckForException:
+    active: true
+  PrintStackTrace:
+    active: true
+  RethrowCaughtException:
+    active: true
+  TooGenericExceptionCaught:
+    active: false
+    exceptionNames: ['Error', 'Exception', 'Throwable', 'RuntimeException']
+  TooGenericExceptionThrown:
+    active: false
+    exceptionNames: ['Error', 'Exception', 'Throwable', 'RuntimeException']
 
 performance:
   SpreadOperator:

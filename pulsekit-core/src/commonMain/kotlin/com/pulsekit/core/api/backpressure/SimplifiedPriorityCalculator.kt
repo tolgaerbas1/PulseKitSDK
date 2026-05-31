@@ -4,17 +4,17 @@ import com.pulsekit.core.api.events.PulseEvent
 
 /**
  * Simplified priority system for event backpressure.
- * 
+ *
  * This implementation focuses on the core needs of a telemetry SDK:
  * - Critical events must never be dropped
  * High priority events are preserved when possible
  * Low priority events are dropped first under pressure
  */
 internal object SimplifiedPriorityCalculator {
-    
+
     /**
      * Calculate priority for an event.
-     * 
+     *
      * Simplified logic focusing on the most important distinctions.
      */
     fun calculatePriority(event: PulseEvent): EventPriority {

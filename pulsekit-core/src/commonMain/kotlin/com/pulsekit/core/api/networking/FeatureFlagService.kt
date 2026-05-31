@@ -1,8 +1,7 @@
 package com.pulsekit.core.api.networking
 
-import com.pulsekit.core.api.flags.FeatureFlag
-import com.pulsekit.core.api.flags.FlagValue
 import com.pulsekit.core.api.flags.FeatureFlagManager
+import com.pulsekit.core.api.flags.FlagValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -10,29 +9,28 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.long
 import kotlinx.serialization.json.longOrNull
 
 /**
  * Service for fetching feature flags from the server.
- * 
+ *
  * This service handles network requests for feature flags and updates
  * the FeatureFlagManager with server values.
  */
 internal class FeatureFlagService(
     private val networkClient: NetworkClient,
     private val flagManager: FeatureFlagManager,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
 ) {
-    
+
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
     }
-    
+
     /**
      * Fetch feature flags from the server.
      */
@@ -47,15 +45,15 @@ internal class FeatureFlagService(
             Result.failure(e)
         }
     }
-    
+
     /**
      * Parse feature flag response from JSON.
      */
     private fun parseFlagResponse(jsonBody: String): FeatureFlagResponse {
         val jsonObject = json.decodeFromString<JsonObject>(jsonBody)
-        
+
         val flags = mutableMapOf<String, FlagValue>()
-        
+
         jsonObject["flags"]?.let { flagsArray ->
             if (flagsArray is JsonObject) {
                 flagsArray.forEach { (key, element) ->
@@ -66,14 +64,14 @@ internal class FeatureFlagService(
                 }
             }
         }
-        
+
         return FeatureFlagResponse(
             flags = flags,
             timestamp = jsonObject["timestamp"]?.toString()?.toLongOrNull() ?: System.currentTimeMillis(),
-            version = jsonObject["version"]?.toString() ?: "unknown"
+            version = jsonObject["version"]?.toString() ?: "unknown",
         )
     }
-    
+
     /**
      * Parse individual flag value from JSON element.
      */
@@ -91,14 +89,14 @@ internal class FeatureFlagService(
             else -> null
         }
     }
-    
+
     /**
      * Update flag manager with server values.
      */
     private fun updateFlagManager(response: FeatureFlagResponse) {
         flagManager.updateServerFlags(response.flags)
     }
-    
+
     /**
      * Start periodic flag fetching.
      */
@@ -124,7 +122,7 @@ internal class FeatureFlagService(
 internal data class FeatureFlagResponse(
     val flags: Map<String, FlagValue>,
     val timestamp: Long,
-    val version: String
+    val version: String,
 )
 
 /**
@@ -132,5 +130,5 @@ internal data class FeatureFlagResponse(
  */
 internal class NetworkError(
     val statusCode: Int,
-    override val message: String
+    override val message: String,
 ) : Exception(message)

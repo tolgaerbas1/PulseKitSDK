@@ -22,7 +22,7 @@ Sync your project with Gradle files to download the dependency.
 
 ### 1. Initialize PulseKit
 
-The best place to initialize PulseKit is in your `Application` class:
+The best place to initialize PulseKit is in your `Application` class. For production, add `buildConfigField` for the API key—see [API Key and Backend](ApiKeyAndBackend.md).
 
 ```kotlin
 class MyApplication : Application() {
@@ -31,7 +31,7 @@ class MyApplication : Application() {
         
         // Initialize PulseKit with basic configuration
         PulseKitAndroid.initialize(this, PulseKitConfig {
-            apiKey = "your-api-key" // Production: use BuildConfig or env, do not hardcode
+            apiKey = BuildConfig.PULSEKIT_API_KEY  // See docs/ApiKeyAndBackend.md
             enableDebugLogging = BuildConfig.DEBUG
         })
     }
@@ -178,8 +178,8 @@ PulseKit offers many configuration options to customize behavior:
 
 ```kotlin
 val config = PulseKitConfig {
-    // Authentication
-    apiKey = "your-api-key"
+    // Authentication (use BuildConfig in production - see docs/ApiKeyAndBackend.md)
+    apiKey = BuildConfig.PULSEKIT_API_KEY
     baseUrl = "https://api.pulsekit.dev" // Custom endpoint
     
     // Debugging

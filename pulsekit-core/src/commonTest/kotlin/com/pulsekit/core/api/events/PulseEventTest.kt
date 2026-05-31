@@ -1,9 +1,9 @@
 package com.pulsekit.core.api.events
 
-import kotlin.time.Duration.Companion.milliseconds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
+import kotlin.time.Duration.Companion.milliseconds
 
 class PulseEventTest {
 
@@ -22,7 +22,7 @@ class PulseEventTest {
             eventName = "action",
             metadata = mapOf("k" to "v"),
             value = 42.0,
-            category = "test"
+            category = "test",
         )
         assertEquals("action", event.eventName)
         assertEquals(mapOf("k" to "v"), event.metadata)
@@ -35,7 +35,7 @@ class PulseEventTest {
         val event = EngagementEvent(
             action = EngagementAction.CLICK,
             target = "btn",
-            duration = 150.milliseconds
+            duration = 150.milliseconds,
         )
         assertEquals("engagement_click", event.eventName)
         assertEquals(EngagementAction.CLICK, event.action)
@@ -47,7 +47,7 @@ class PulseEventTest {
         val event = PerformanceEvent(
             metric = "latency",
             value = 16.7,
-            unit = "ms"
+            unit = "ms",
         )
         assertEquals("performance_latency", event.eventName)
         assertEquals("latency", event.metric)
@@ -60,7 +60,7 @@ class PulseEventTest {
         val event = ErrorEvent(
             errorType = ErrorType.RUNTIME,
             message = "test error",
-            isFatal = false
+            isFatal = false,
         )
         assertEquals("error_runtime", event.eventName)
         assertEquals(ErrorType.RUNTIME, event.errorType)
@@ -71,7 +71,7 @@ class PulseEventTest {
     fun lifecycleEvent_hasDerivedEventName() {
         val event = LifecycleEvent(
             action = LifecycleAction.FOREGROUND,
-            component = "MainActivity"
+            component = "MainActivity",
         )
         assertEquals("lifecycle_foreground", event.eventName)
         assertEquals(LifecycleAction.FOREGROUND, event.action)
