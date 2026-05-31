@@ -8,49 +8,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial release of PulseKit SDK
-- Production-grade telemetry for Android apps and games
-- Zero integration work setup with ProcessLifecycleOwner
-- Offline-first event persistence with SQLite
-- Automatic session management with timeout handling
-- Type-safe event tracking with sealed classes
-- Comprehensive error handling
-- Lifecycle-aware session tracking
-- Activity monitoring to prevent premature timeouts
-- Maven Central publishing configuration
-- Comprehensive documentation and examples
+- Disk-backed event persistence via `DatabaseDriver` (SQLite on Android, JDBC on JVM)
+- `configureEventPersistence()` API on `PulseKitInstance` for platform-specific database wiring
+- `AndroidNetworkClient` — lifecycle-aware `HttpURLConnection`-based `NetworkClient`
+- `createDatabaseDriver()` factory function for Android SQLite setup
+- `setRefreshAction()` hook on `FeatureFlagManager` for networking-layer integration
+- `Migrations` property on `DatabaseSchema` for future database version upgrades
+- detekt baseline (`config/detekt-baseline.xml`) for legacy warning suppression
+- `.gitattributes` for LF line-ending standardization
 
-### Features
-- **Core SDK (`pulsekit-core`)**
-  - Platform-agnostic event tracking
-  - Session management
-  - Offline-first queueing
-  - JSON serialization
-  - Configuration DSL
-  - Error handling hierarchy
+### Changed
+- **Feature flag system**: Unified into single integrated architecture
+  - Removed `SimplifiedFeatureFlags` — merged into `FeatureFlagManager`
+  - Removed `AndroidFeatureFlagService` — duplicate JSON parsing eliminated
+  - Removed `AndroidFeatureFlagManager` — replaced with direct wiring in `PulseKitAndroid`
+  - `PulseKitInstance.configureFeatureFlags()` now wires networking + persistence together
+- **FlagPersistence**: Simplified constructor (removed unused `scope` parameter)
+- **JVM targets**: Upgraded from 1.8 to 17 across all modules
+- **Build system**: AGP 8.1.4 → 8.7.3, Kotlin 1.9.10 → 2.0.21, Gradle 8.5 → 8.10.2
+- **Dependencies**: coroutines 1.7.3 → 1.9.0, kotlinx-serialization 1.6.2 → 1.7.3, kotlinx-datetime 0.4.0 → 0.6.1, AndroidX Lifecycle 2.7.0 → 2.8.7
+- **Kotlin compiler**: Migrated `kotlinOptions` → `compilerOptions` for K2 compatibility
+- **Detekt**: Enabled `allRules` with generated baseline
+- **EventQueue**: Removed `pulsekit-android` library `targetSdk` (app-only DSL)
+- **Dokka**: Migrated to V2 plugin mode
 
-- **Android SDK (`pulsekit-android`)**
-  - ProcessLifecycleOwner integration
-  - Automatic session management
-  - Network monitoring
-  - Auto-initialization support
-  - Activity tracking
-  - Battery-efficient operations
+### Fixed
+- KMP `androidTarget` now declared directly instead of inside `plugins.withId` block
+- Java/Kotlin JVM target consistency (1.8 → 17) across all compilation tasks
+- `FlagPersistence` uses `withContext(Dispatchers.IO)` instead of `scope.launch()` for proper suspension
+- `UseCheckOrError` detekt violations in `AndroidNetworkClient`
+- Duplicate "Production note" section in README
 
-- **Build System**
-  - Multi-module Gradle setup
-  - Convention plugins
-  - Maven Central publishing
-  - GPG signing
-  - Documentation generation
-  - CI/CD workflows
-
-### Documentation
-- Comprehensive README with quick start guide
-- Architecture documentation
-- Publishing guide
-- API documentation with Dokka
-- Sample application demonstrating all features
+### Removed
+- `SimplifiedFeatureFlags.kt` — replaced by unified `FeatureFlagManager`
+- `AndroidFeatureFlagService.kt` — duplicate of core `FeatureFlagService`
+- `AndroidFeatureFlagManager.kt` — rewired directly in `PulseKitAndroid`
 
 ## [0.1.0] - 2024-02-01
 

@@ -3,19 +3,26 @@
 [![Maven Central](https://img.shields.io/maven-central/v/com.pulsekit/pulsekit-android.svg)](https://search.maven.org/artifact/com.pulsekit/pulsekit-android)
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg)](https://android-arsenal.com/api?level=21)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
+[![AGP](https://img.shields.io/badge/AGP-8.7.3-green.svg)](https://developer.android.com/build/releases/gradle-plugin)
+[![Gradle](https://img.shields.io/badge/Gradle-8.10-02303a.svg)](https://gradle.org)
 
-Production-grade telemetry SDK for Android apps and games, built with a developer-first API design, lifecycle-aware, and offline-first architecture.
+Production-grade telemetry SDK for Android apps and games. Developer-first API design, lifecycle-aware, offline-first architecture with disk-backed event persistence and server-driven feature flags.
 
 ## Features
 
 - 🎯 **Developer-First API** - Clean, intuitive API that's impossible to misuse
-- 🔄 **Lifecycle-Aware** - Automatic session management with ProcessLifecycleOwner
+- 🔄 **Lifecycle-Aware** - Automatic session management via ProcessLifecycleOwner
 - 📱 **Offline-First** - Queue events locally when offline, sync when connected
+- 💾 **Disk-Backed Persistence** - Events survive app restarts via SQLite storage
+- 🚩 **Server-Driven Feature Flags** - Remote behavior control without app updates
 - 🏗️ **Multi-Module Architecture** - Clean separation between core and Android-specific code
-- 🧵 **Coroutine-Based** - Built on structured concurrency for modern async programming
+- 🧵 **Coroutine-Based** - Structured concurrency for modern async programming
 - 🔒 **Type-Safe** - Sealed classes for events and errors prevent runtime surprises
-- 📦 **Ready for Publishing** - Maven Central compatible with proper documentation
-- 🎮 **Game Engine Ready** - Designed for future Unity/Unreal integration
+- 🛡️ **Host App Safety** - Bounded queues, deterministic drop policies, never crashes the host
+- ⚡ **Backpressure Management** - Priority-based event dropping under extreme load
+- 📊 **Crash Reporting** - Opt-in uncaught exception tracking as fatal ErrorEvents
+- 🔌 **Network Monitoring** - Automatic event flush when connectivity is restored
+- 📦 **Maven Central Ready** - Publishing automation with API compatibility checking
 
 ## Quick Start
 
@@ -83,32 +90,53 @@ PulseKitAndroid.instance.track(
 PulseKit is built with a clean multi-module architecture:
 
 ```
-┌─────────────────┐    ┌─────────────────┐
-│   pulsekit-core │    │ pulsekit-android│
-│                 │    │                 │
-│ • Public API    │◄──►│ • Android Bindings
-│ • Event Types   │    │ • Lifecycle     │
-│ • Session Mgmt  │    │ • Network       │
-│ • Queue Logic   │    │ • Auto-Init     │
-└─────────────────┘    └─────────────────┘
-         │                       │
-         ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐
-│   build-logic   │    │   sample-app    │
-│                 │    │                 │
-│ • Convention    │    │ • Demo Usage    │
-│   Plugins       │    │ • Testing       │
-│ • Publishing    │    │ • Examples      │
-└─────────────────┘    └─────────────────┘
+┌──────────────────────────────────────────────┐
+│              pulsekit-core (KMP)             │
+│                                              │
+│  • Public API (PulseKit, PulseKitInstance)   │
+│  • Event Types (sealed class hierarchy)      │
+│  • Session Management (SessionManager)       │
+│  • Event Queue (in-memory + disk-backed)     │
+│  • Backpressure (priority-based dropping)    │
+│  • Feature Flag Manager (TTL cache)          │
+│  • Flag Persistence (disk storage)           │
+│  • Database Driver (platform-agnostic)       │
+└────────────────┬─────────────────────────────┘
+                 │ depends on
+┌────────────────▼─────────────────────────────┐
+│            pulsekit-android                  │
+│                                              │
+│  • PulseKitAndroid (zero-config entry)       │
+│  • Lifecycle Observer (ProcessLifecycleOwner)│
+│  • Network Monitor (ConnectivityManager)     │
+│  • Crash Reporting (UncaughtExceptionHandler)│
+│  • Android SQLite Driver (database)          │
+│  • Android Network Client (HttpURLConnection)│
+│  • Android Flag Storage (SharedPreferences)  │
+└────────────────┬─────────────────────────────┘
+                 │
+┌────────────────▼─────────────────────────────┐
+│               sample-app                     │
+│  • Demo usage, testing, examples             │
+└──────────────────────────────────────────────┘
 ```
 
 ### Module Overview
 
-- **pulsekit-core**: Pure Kotlin module with public API, no Android dependencies
-- **pulsekit-android**: Android-specific bindings, lifecycle integration, network monitoring
+- **pulsekit-core**: Pure Kotlin KMP module with public API, no Android dependencies
+- **pulsekit-android**: Android bindings — lifecycle, network, database, feature flags
 - **sample-app**: Minimal Android app demonstrating SDK usage
 - **build-logic**: Gradle convention plugins for consistent builds
-- **docs**: Documentation and guides
+- **docs**: Architecture guides, feature documentation, and staff reviews
+
+### Key Design Decisions
+
+| Decision | Rationale | Documented in |
+|---|---|---|
+| Feature Flag Manager + persistence | Offline resilience, battery efficiency via lifecycle-aware fetch | `docs/FeatureFlags.md` |
+| In-memory queue + SQLite backing | Fast reads + survive restarts | `docs/Architecture.md` |
+| Backpressure with priority dropping | Host app never crashes, critical events preserved | `docs/BackpressureStrategy.md` |
+| `DatabaseDriver` interface | Platform-agnostic; Android uses SQLite, JVM uses JDBC | `docs/Architecture.md` |
 
 ## Event Types
 
@@ -162,27 +190,38 @@ LifecycleEvent(
 
 ## Configuration
 
-PulseKit uses a clean DSL-based configuration:
+PulseKit uses a clean DSL-based configuration. All optional settings have sensible production defaults.
 
 ```kotlin
 val config = PulseKitConfig {
-    // Required for production - use BuildConfig or env; never hardcode
     apiKey = BuildConfig.PULSEKIT_API_KEY
     
-    // Optional settings
-    baseUrl = "https://api.pulsekit.dev"
-    enableDebugLogging = BuildConfig.DEBUG
-    maxQueueSize = 1000
-    flushInterval = 5.minutes
+    // Offline queue & persistence (defaults shown)
+    enableOfflineQueueing = true      // Queue events when offline
+    enableDiskPersistence = true      // Survive app restarts via SQLite
+    
+    // Session management
+    enableAutoSessionManagement = true
     sessionTimeout = 30.minutes
     
+    // Performance tuning
+    maxQueueSize = 1000               // Max in-memory events
+    flushInterval = 5.minutes         // Auto-flush interval
+    maxEventAge = 24.hours            // Discard stale events
+    
+    // Debug & crash reporting
+    enableDebugLogging = BuildConfig.DEBUG
+    enableCrashReporting = false      // Opt-in uncaught exception tracking
+    
     // Global metadata added to all events
-    metadata("app_version", "1.0.0")
-    metadata("build_type", "release")
+    metadata("app_version", BuildConfig.VERSION_NAME)
+    metadata("build_type", BuildConfig.BUILD_TYPE)
 }
 ```
 
-**API Key and Production:** See [API Key and Backend Guide](docs/ApiKeyAndBackend.md) for secure setup with BuildConfig, local.properties, or environment variables.
+**Feature flags** are automatically enabled. The SDK fetches server-driven configuration every 5 minutes and persists flags to disk for offline availability. See the [Feature Flags Guide](docs/FeatureFlags.md).
+
+**API Key and Production:** See [API Key and Backend Guide](docs/ApiKeyAndBackend.md) for secure setup with BuildConfig, local.properties, or environment variables. Never commit API keys in source code.
 
 ## Session Management
 
@@ -263,21 +302,6 @@ This project is configured for Maven Central publishing:
 # Publish to Maven Central (requires proper setup)
 ./gradlew publishAllPublicationsToMavenCentralRepository
 ```
-
-## Production note
-
-**API key:** In production, provide the API key via BuildConfig, environment variables, or a secure secrets mechanism. Do not commit API keys in source code.
-
-## Production note
-
-**API key:** In production, provide the API key via BuildConfig, environment variables, or a secure secrets mechanism. Do not commit API keys in source code.
-
-## Requirements
-
-- **Android API**: 21+ (Android 5.0)
-- **Kotlin**: 2.0.21+
-- **Gradle**: 8.0+
-- **Coroutines**: 1.7.3+
 
 ## License
 

@@ -271,3 +271,25 @@ The author shows good technical skills but needs development in engineering judg
 - Avoiding resume-driven design patterns
 
 With targeted simplification, this would be a production-ready SDK suitable for enterprise deployment at companies like Netflix, Google, Meta, or Datadog.
+
+---
+
+## Resolution Status (as of 2026-05-31)
+
+### ✅ Resolved
+1. **Feature Flag System**: Collapsed from 800+ lines / 4 classes to a single integrated architecture. `SimplifiedFeatureFlags`, `AndroidFeatureFlagService`, `AndroidFeatureFlagManager` removed. Core `FeatureFlagManager` now wired end-to-end via `PulseKitInstance.configureFeatureFlags()`.
+
+2. **Disk-Backed Event Persistence**: `EventQueue` now supports optional `DatabaseDriver` for SQLite persistence. Events survive app restarts. Async disk writes fire-and-forget from `enqueue()`, with `loadFromDisk()` on init.
+
+3. **Platform Abstractions with Single Implementations**: Retained intentionally. `DatabaseDriver` interface serves Android (SQLite) and JVM (JDBC) targets. `FlagStorage` / `PlatformFlagStorage` provide clean extension points — justified for a KMP SDK.
+
+4. **AGP/Kotlin Upgrade**: Upgraded to AGP 8.7.3, Kotlin 2.0.21, Gradle 8.10.2. All compiler warnings/errors resolved.
+
+### ⚠️ Partially Resolved
+- **Metrics system**: Still has comprehensive metrics (SimplifiedMetrics). Acceptable as internal observability — not exposed to host app.
+- **Priority system**: 4 levels retained (CRITICAL, HIGH, MEDIUM, LOW). MEDIUM provides granularity for engagement events without overhead.
+
+### Validation
+- All tests pass (pulsekit-core + pulsekit-android)
+- Detekt baseline suppresses legacy warnings; all new code passes clean
+- README, CHANGELOG, and docs reflect current architecture
