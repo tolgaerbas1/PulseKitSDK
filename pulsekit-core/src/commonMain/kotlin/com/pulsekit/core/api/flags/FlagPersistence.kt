@@ -3,7 +3,7 @@ package com.pulsekit.core.api.flags
 import com.pulsekit.core.api.logging.PulseKitLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -14,7 +14,7 @@ import kotlinx.serialization.json.Json
  * to maintain state across app restarts.
  */
 class FlagPersistence private constructor(
-    private val scope: CoroutineScope,
+    @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
     private val storage: FlagStorage,
     @Suppress("UNUSED_PARAMETER") private val _privateInit: Unit,
 ) {
@@ -37,7 +37,7 @@ class FlagPersistence private constructor(
      * Save feature flags to persistent storage.
      */
     suspend fun saveFlags(flags: Map<String, FlagValue>) {
-        scope.launch(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
             try {
                 val serialized = json.encodeToString(flags)
                 storage.save(serialized)
@@ -70,7 +70,7 @@ class FlagPersistence private constructor(
      * Clear persisted feature flags.
      */
     suspend fun clearFlags() {
-        scope.launch(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
             try {
                 storage.clear()
             } catch (e: Exception) {

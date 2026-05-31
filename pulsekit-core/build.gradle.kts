@@ -1,4 +1,5 @@
 plugins {
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.dokka)
@@ -10,6 +11,15 @@ apply(from = rootProject.file("gradle/jacoco.gradle.kts"))
 kotlin {
     jvm {
         jvmToolchain(17)
+    }
+
+    androidTarget {
+        publishLibraryVariants("release")
+        compilations.all {
+            kotlinOptions {
+                jvmTarget = "1.8"
+            }
+        }
     }
 
     sourceSets {
@@ -43,38 +53,28 @@ kotlin {
             }
         }
 
-        // NOTE: androidMain/androidTest should only be configured when Android plugin is present.
-        // They are configured below inside plugins.withId("com.android.library").
+        val androidMain by getting {
+            dependsOn(commonMain.get())
+            dependencies {
+                implementation(libs.kotlin.stdlib)
+            }
+        }
+
+        val androidUnitTest by getting {
+            dependsOn(commonTest.get())
+            dependencies {
+                implementation(libs.junit)
+            }
+        }
     }
 }
 
-// Configure Android target and android source sets only when Android Gradle plugin is applied to this project
-plugins.withId("com.android.library") {
-    extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension> {
-        androidTarget {
-            publishLibraryVariants("release")
-            compilations.all {
-                kotlinOptions {
-                    jvmTarget = "1.8"
-                }
-            }
-        }
+android {
+    namespace = "com.pulsekit.core"
+    compileSdk = 34
 
-        sourceSets {
-            val androidMain by getting {
-                dependsOn(commonMain.get())
-                dependencies {
-                    implementation(libs.kotlin.stdlib)
-                }
-            }
-
-            val androidTest by getting {
-                dependsOn(commonTest.get())
-                dependencies {
-                    implementation(libs.junit)
-                }
-            }
-        }
+    defaultConfig {
+        minSdk = 21
     }
 }
 

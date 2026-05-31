@@ -55,7 +55,9 @@ internal object DatabaseSchema {
     /**
      * Migration definitions for database version upgrades.
      */
-    object Migrations
+    object Migrations {
+        val MIGRATIONS: Map<Int, List<String>> = emptyMap()
+    }
 }
 
 /**

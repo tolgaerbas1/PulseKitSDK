@@ -29,6 +29,7 @@ class FeatureFlagManager(
     // Cache for server flag values
     private var serverFlags: Map<String, FlagValue> = emptyMap()
     private var serverFlagsTimestamp: Instant? = null
+    private var refreshAction: (() -> Unit)? = null
 
     // Cache expiration time (5 minutes)
     private val cacheExpiration = 5.minutes
@@ -161,26 +162,22 @@ class FeatureFlagManager(
         }
 
         fetchStatus.value = FetchStatus.FETCHING
+        val refresh = refreshAction
+        if (refresh != null) {
+            refresh()
+            return
+        }
 
-        // This will be handled by the networking layer
         scope.launch {
-            try {
-                // Signal networking layer to fetch flags
-                // The actual implementation will be in the networking module
-                refreshServerFlagsInternal()
-            } catch (e: Exception) {
-                handleFetchFailure(e)
-            }
+            handleFetchFailure(IllegalStateException("No feature flag refresh source configured"))
         }
     }
 
     /**
-     * Internal method to refresh server flags.
-     * This will be implemented by the networking module.
+     * Set the networking-layer refresh hook.
      */
-    private fun refreshServerFlagsInternal() {
-        // Placeholder - actual implementation in networking module
-        // This will be overridden by the Android-specific implementation
+    fun setRefreshAction(action: (() -> Unit)?) {
+        refreshAction = action
     }
 
     /**
@@ -251,6 +248,7 @@ class FeatureFlagManager(
         // Clear caches and cancel any ongoing operations
         serverFlags = emptyMap()
         serverFlagsTimestamp = null
+        refreshAction = null
         fetchStatus.value = FetchStatus.NOT_FETCHED
         lastFetchTime.value = null
     }
