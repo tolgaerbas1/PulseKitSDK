@@ -9,20 +9,15 @@ plugins {
 apply(from = rootProject.file("gradle/jacoco.gradle.kts"))
 
 kotlin {
-    jvm {
-        jvmToolchain(17)
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "17"
-            }
-        }
-    }
+    jvm()
 
     androidTarget {
         publishLibraryVariants("release")
         compilations.all {
-            kotlinOptions {
-                jvmTarget = "17"
+            compileTaskProvider.configure {
+                compilerOptions {
+                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+                }
             }
         }
     }
@@ -44,7 +39,6 @@ kotlin {
         }
 
         val jvmMain by getting {
-            dependsOn(commonMain.get())
             dependencies {
                 implementation(libs.kotlin.stdlib)
                 implementation(libs.sqlite.jdbc)
@@ -52,21 +46,18 @@ kotlin {
         }
 
         val jvmTest by getting {
-            dependsOn(commonTest.get())
             dependencies {
                 implementation(libs.mockito.core)
             }
         }
 
         val androidMain by getting {
-            dependsOn(commonMain.get())
             dependencies {
                 implementation(libs.kotlin.stdlib)
             }
         }
 
         val androidUnitTest by getting {
-            dependsOn(commonTest.get())
             dependencies {
                 implementation(libs.junit)
             }
@@ -81,6 +72,11 @@ android {
     defaultConfig {
         minSdk = 21
     }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 }
 
 java {
@@ -89,11 +85,12 @@ java {
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf(
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
             "-Xjvm-default=all",
+            "-Xexpect-actual-classes",
         )
     }
 }

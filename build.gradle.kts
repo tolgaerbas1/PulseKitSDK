@@ -1,10 +1,10 @@
 plugins {
-    id("com.android.application") version "8.1.4" apply false
-    id("com.android.library") version "8.1.4" apply false
-    id("org.jetbrains.kotlin.jvm") version "1.9.10" apply false
-    id("org.jetbrains.kotlin.multiplatform") version "1.9.10" apply false
-    id("org.jetbrains.kotlin.android") version "1.9.10" apply false
-    id("org.jetbrains.dokka") version "1.9.10" apply false
+    id("com.android.application") version "8.7.3" apply false
+    id("com.android.library") version "8.7.3" apply false
+    id("org.jetbrains.kotlin.jvm") version "2.0.21" apply false
+    id("org.jetbrains.kotlin.multiplatform") version "2.0.21" apply false
+    id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+    id("org.jetbrains.dokka") version "2.0.0" apply false
     id("com.vanniktech.maven.publish") version "0.25.3" apply false
     id("com.diffplug.spotless") version "6.25.0" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.4" apply false
