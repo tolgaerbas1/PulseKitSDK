@@ -9,8 +9,10 @@ import com.pulsekit.core.api.events.PulseKitStatus
 import com.pulsekit.core.api.events.SessionInfo
 import com.pulsekit.core.api.flags.FeatureFlag
 import com.pulsekit.core.api.flags.FeatureFlagManager
+import com.pulsekit.core.api.flags.FlagPersistence
 import com.pulsekit.core.api.networking.EventBatchSender
 import com.pulsekit.core.api.networking.FeatureFlagService
+import com.pulsekit.core.api.networking.NetworkClient
 import com.pulsekit.core.api.session.SessionManager
 import com.pulsekit.core.api.storage.EventQueue
 import kotlinx.coroutines.CoroutineScope
@@ -39,46 +41,73 @@ public class PulseKitInstance internal constructor(
 
     // Feature flag system
     private val flagManager: FeatureFlagManager = FeatureFlagManager(sdkScope)
-    private val flagService: FeatureFlagService? = createFlagService()
 
     init {
         // Wire session start/end to event queue as LifecycleEvents
         sessionManager.setOnTrackEvent(eventProcessor::process)
-        // Initialize feature flags
-        initializeFeatureFlags()
-        // Start periodic flag fetching
-        flagService?.startPeriodicFetching()
     }
 
     /**
-     * Create feature flag service.
-     * This will be implemented by platform-specific modules.
+     * Configure the feature flag system with platform-specific networking and persistence.
+     *
+     * Called automatically by platform initialization code (e.g. [com.pulsekit.android.PulseKitAndroid]).
+     * This wires the core [FeatureFlagManager] to:
+     * 1. Load persisted flags from disk
+     * 2. Fetch updated flags from the server periodically
+     * 3. Save server responses to disk for offline availability
+     * 4. Provide an on-demand refresh mechanism via [FeatureFlagManager.setRefreshAction]
      */
-    private fun createFlagService(): FeatureFlagService? {
-        // This will be overridden by Android implementation
-        return null
-    }
-
-    /**
-     * Initialize feature flag system.
-     */
-    private fun initializeFeatureFlags() {
-        // Load persisted flags if available
+    public fun configureFeatureFlags(
+        networkClient: NetworkClient,
+        persistence: FlagPersistence,
+    ) {
+        // 1. Load persisted flags into the manager
         sdkScope.launch {
             try {
-                // This will be implemented by platform-specific modules
-                loadPersistedFlags()
+                persistence.loadFlags()?.let { flags ->
+                    flagManager.updateServerFlags(flags)
+                    if (config.enableDebugLogging) {
+                        com.pulsekit.core.api.logging.PulseKitLogger.log(
+                            "PulseKit.Flags",
+                            "Loaded ${flags.size} persisted feature flags",
+                        )
+                    }
+                }
             } catch (e: Exception) {
-                // Continue with default values if loading fails
+                if (config.enableDebugLogging) {
+                    com.pulsekit.core.api.logging.PulseKitLogger.log(
+                        "PulseKit.Flags",
+                        "Failed to load persisted flags: ${e.message}",
+                    )
+                }
             }
         }
+
+        // 2. Create service and wire periodic fetching
+        val service = createFlagService(networkClient)
+
+        flagManager.setRefreshAction {
+            sdkScope.launch {
+                service.fetchFeatureFlags().onSuccess { response ->
+                    // Persist updated flags for offline availability
+                    sdkScope.launch {
+                        try {
+                            persistence.saveFlags(response.flags)
+                        } catch (_: Exception) { }
+                    }
+                }
+            }
+        }
+
+        // 3. Start periodic background fetching
+        service.startPeriodicFetching()
     }
 
     /**
-     * Load persisted flags (platform-specific).
+     * Create a [FeatureFlagService] backed by the given [NetworkClient].
      */
-    private fun loadPersistedFlags() {
-        // This will be implemented by platform-specific modules
+    private fun createFlagService(networkClient: NetworkClient): FeatureFlagService {
+        return FeatureFlagService(networkClient, flagManager, sdkScope)
     }
 
     /**

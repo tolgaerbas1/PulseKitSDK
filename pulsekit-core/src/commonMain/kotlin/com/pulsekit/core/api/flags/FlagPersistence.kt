@@ -1,7 +1,6 @@
 package com.pulsekit.core.api.flags
 
 import com.pulsekit.core.api.logging.PulseKitLogger
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -13,21 +12,9 @@ import kotlinx.serialization.json.Json
  * This handles optional disk persistence of feature flag values
  * to maintain state across app restarts.
  */
-class FlagPersistence private constructor(
-    @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
+class FlagPersistence(
     private val storage: FlagStorage,
-    @Suppress("UNUSED_PARAMETER") private val _privateInit: Unit,
 ) {
-
-    constructor(
-        scope: CoroutineScope,
-        storage: FlagStorage,
-    ) : this(
-        scope = scope,
-        storage = storage,
-        _privateInit = Unit,
-    )
-
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true

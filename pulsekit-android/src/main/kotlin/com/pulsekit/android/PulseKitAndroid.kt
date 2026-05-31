@@ -6,6 +6,7 @@ import com.pulsekit.android.lifecycle.PulseKitLifecycleObserver
 import com.pulsekit.android.lifecycle.SessionLifecycleListener
 import com.pulsekit.android.network.NetworkMonitor
 import com.pulsekit.android.networking.AndroidEventBatchSender
+import com.pulsekit.android.networking.AndroidNetworkClient
 import com.pulsekit.android.storage.AndroidFileFlagStorage
 import com.pulsekit.core.api.PulseKit
 import com.pulsekit.core.api.config.PulseKitConfig
@@ -78,8 +79,8 @@ public object PulseKitAndroid {
             PulseKitLifecycleObserver.initialize(context, instance)
         }
 
-        // Initialize feature flag system
-        initializeFeatureFlags(context, config)
+        // Initialize feature flag system with networking and persistence
+        initializeFeatureFlags(context, config, instance)
         // Network connectivity monitoring: flush when back online
         setupNetworkConnectivityMonitoring(context, instance)
         // Opt-in crash reporting: track uncaught exceptions as fatal ErrorEvents
@@ -153,13 +154,19 @@ public object PulseKitAndroid {
     }
 
     /**
-     * Initialize the feature flag system.
+     * Initialize the feature flag system with Android-specific networking and persistence.
+     *
+     * Creates:
+     * 1. Platform-appropriate flag storage (disk or in-memory based on config)
+     * 2. A [FlagPersistence] layer backed by that storage
+     * 3. An [AndroidNetworkClient] for server communication
+     * 4. Wires everything together via [PulseKitInstance.configureFeatureFlags]
      */
     private fun initializeFeatureFlags(
         context: Context,
         config: PulseKitConfig,
+        instance: com.pulsekit.core.api.PulseKitInstance,
     ) {
-        // Create flag storage based on configuration
         val flagStorage = if (config.enableDiskPersistence) {
             val platformStorage = AndroidFileFlagStorage(context)
             DiskFlagStorage(platformStorage)
@@ -167,26 +174,11 @@ public object PulseKitAndroid {
             InMemoryFlagStorage()
         }
 
-        // Create flag persistence
-        val flagPersistence = FlagPersistence(
-            scope = CoroutineScope(Dispatchers.IO),
-            storage = flagStorage,
-        )
+        val flagPersistence = FlagPersistence(storage = flagStorage)
 
-        // Load persisted flags
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val persistedFlags = flagPersistence.loadFlags()
-                if (persistedFlags != null && config.enableDebugLogging) {
-                    PulseKitLogger.log("PulseKit.Flags", "Loaded ${persistedFlags.size} persisted feature flags")
-                }
-            } catch (e: Exception) {
-                // Continue with default values if loading fails
-                if (config.enableDebugLogging) {
-                    PulseKitLogger.log("PulseKit.Flags", "Failed to load persisted feature flags: ${e.message}")
-                }
-            }
-        }
+        val networkClient = AndroidNetworkClient(config)
+
+        instance.configureFeatureFlags(networkClient, flagPersistence)
     }
 
     /**
