@@ -18,6 +18,7 @@ spotless {
 
 detekt {
     buildUponDefaultConfig = true
-    allRules = false
+    allRules = true
     config.setFrom(files("${rootProject.projectDir}/config/detekt.yml"))
+    baseline = file("${rootProject.projectDir}/config/detekt-baseline.xml")
 }

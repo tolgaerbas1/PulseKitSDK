@@ -2,7 +2,7 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.pulsekit/pulsekit-android.svg)](https://search.maven.org/artifact/com.pulsekit/pulsekit-android)
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg)](https://android-arsenal.com/api?level=21)
-[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.10-blue.svg)](https://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 
 Production-grade telemetry SDK for Android apps and games, built with a developer-first API design, lifecycle-aware, and offline-first architecture.
 
@@ -275,7 +275,7 @@ This project is configured for Maven Central publishing:
 ## Requirements
 
 - **Android API**: 21+ (Android 5.0)
-- **Kotlin**: 1.9.10+
+- **Kotlin**: 2.0.21+
 - **Gradle**: 8.0+
 - **Coroutines**: 1.7.3+
 

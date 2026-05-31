@@ -15,7 +15,7 @@ internal class AndroidNetworkClient(
 
     override suspend fun get(url: String): String = withContext(Dispatchers.IO) {
         if (!PulseKitLifecycleObserver.isAppInForeground()) {
-            throw IllegalStateException("App is in background — skip network call")
+            error("App is in background — skip network call")
         }
         val endpoint = "${config.baseUrl.trimEnd('/')}$url"
         try {
@@ -44,7 +44,7 @@ internal class AndroidNetworkClient(
 
     override suspend fun post(url: String, body: String): String = withContext(Dispatchers.IO) {
         if (!PulseKitLifecycleObserver.isAppInForeground()) {
-            throw IllegalStateException("App is in background — skip network call")
+            error("App is in background — skip network call")
         }
         val endpoint = "${config.baseUrl.trimEnd('/')}$url"
         try {
