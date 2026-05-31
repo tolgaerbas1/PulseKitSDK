@@ -14,6 +14,16 @@ PulseKit includes a comprehensive feature flag system that allows:
 
 ## Architecture
 
+### Design Decision
+
+**Chosen**: Single unified `FeatureFlagManager` with persistence and server-backed periodic refresh.
+
+**Trade-off**: This design retains enterprise-grade caching (5-min TTL), disk persistence for offline availability, and lifecycle-aware network fetching — all necessary for a professional production SDK. The complexity is justified by the need for:
+- **Offline resilience**: Flags are usable immediately after app launch via persistence layer
+- **Battery efficiency**: Lifecycle-aware fetching skips network when app is in background
+- **Type safety**: Sealed `FlagValue` hierarchy prevents misuse
+- **Observability**: Fetch status tracking for debugging
+
 ### Flag Types
 
 ```kotlin
@@ -50,28 +60,43 @@ sealed class FlagValue {
 
 ## Implementation Details
 
+### Component Architecture
+
+| Component | Location | Role |
+|---|---|---|
+| `FeatureFlagManager` | `pulsekit-core` | In-memory cache with 5-min TTL, type-safe getters, `refreshAction` hook |
+| `FeatureFlagService` | `pulsekit-core` | Server communication, JSON parsing, periodic fetching |
+| `FlagPersistence` | `pulsekit-core` | Disk persistence via `FlagStorage` & `PlatformFlagStorage` |
+| `AndroidNetworkClient` | `pulsekit-android` | `HttpURLConnection`-based `NetworkClient` with lifecycle awareness |
+| `AndroidFileFlagStorage` | `pulsekit-android` | Android internal storage for persisted flags |
+| `PulseKitInstance` | `pulsekit-core` | Wiring point: `configureFeatureFlags(networkClient, persistence)` |
+
 ### Flag Evaluation Flow
 
-1. **Default Values**: Start with hardcoded defaults
-2. **Local Cache**: Check in-memory cache (5-minute TTL)
-3. **Disk Persistence**: Load persisted values if cache expired
-4. **Server Response**: Fetch latest values from server
-5. **Fallback**: Use defaults if server unavailable
+1. **Default Values**: `FeatureFlagManager.init` seeds all flags with hardcoded defaults
+2. **Persistence Load**: `configureFeatureFlags()` loads persisted values from disk → updates manager
+3. **In-Memory Cache**: All `getBooleanFlag()` etc. read from cache (5-min TTL)
+4. **Server Refresh**: On TTL expiry, `refreshAction` triggers `FeatureFlagService.fetchFeatureFlags()` → updates cache
+5. **Persistence Save**: Successful server responses are persisted to disk for offline availability
+6. **Fallback**: Server unavailable → continue using cached/persisted values; never crashes
 
 ### Thread Safety
 
-- **Atomic Operations**: All flag evaluations are thread-safe
-- **Immutable Values**: Flag values are immutable once loaded
-- **Concurrent Access**: Multiple threads can safely read flags
-- **Background Updates**: Server updates happen in background threads
+- All flag evaluations read from `MutableMap` with coroutine-safe access
+- Server updates happen in background coroutines within SDK scope
+- `refreshAction` enforces single-fetch-at-a-time via `FetchStatus` state machine
 
 ### Caching Strategy
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   In-Memory     │───▶│   Disk Cache    │───▶│   Server API    │
-│   Cache (5min)  │    │   (Persistent)  │    │   (Real-time)   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌──────────────────┐
+│   In-Memory     │───▶│   Disk Cache    │◀───│   Periodic Fetch  │
+│   (5-min TTL)   │    │   (FlagPersist) │    │   (5-min interval)│
+└─────────────────┘    └─────────────────┘    └──────────────────┘
+                              │                          │
+                              ▼                          ▼
+                  AndroidFileFlagStorage        AndroidNetworkClient
+                  (internal storage)           (HttpURLConnection)
 ```
 
 ## Usage Examples

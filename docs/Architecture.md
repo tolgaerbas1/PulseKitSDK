@@ -376,10 +376,14 @@ PulseKit includes a simplified server-driven feature flag system for remote beha
 ### Simplified Implementation
 
 ```kotlin
-// Simple in-memory storage with periodic refresh
-val flags = SimplifiedFeatureFlags(config, scope)
-val batchSize = flags.getInteger("event_batch_size", 50)
-val compression = flags.getBoolean("event_compression", true)
+// Core FeatureFlagManager with server overrides, in-memory caching, and optional disk persistence
+// Initialized via PulseKitInstance.configureFeatureFlags(networkClient, persistence)
+val instance = PulseKit.initialize(config, scope, batchSender)
+instance.configureFeatureFlags(androidNetworkClient, flagPersistence)
+
+// Read flags with type-safe access and automatic server fallback
+val batchSize = instance.getIntegerFlag(PulseKitFeatureFlags.EVENT_BATCH_SIZE)
+val compression = instance.getBooleanFlag(PulseKitFeatureFlags.EVENT_COMPRESSION)
 ```
 
 ### Use Cases
