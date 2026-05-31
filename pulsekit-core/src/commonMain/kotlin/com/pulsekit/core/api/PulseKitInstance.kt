@@ -14,6 +14,7 @@ import com.pulsekit.core.api.networking.EventBatchSender
 import com.pulsekit.core.api.networking.FeatureFlagService
 import com.pulsekit.core.api.networking.NetworkClient
 import com.pulsekit.core.api.session.SessionManager
+import com.pulsekit.core.api.storage.DatabaseDriver
 import com.pulsekit.core.api.storage.EventQueue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -101,6 +102,19 @@ public class PulseKitInstance internal constructor(
 
         // 3. Start periodic background fetching
         service.startPeriodicFetching()
+    }
+
+    /**
+     * Configure event queue disk persistence via a platform-specific [DatabaseDriver].
+     *
+     * When provided, events are persisted to disk and survive app restarts.
+     * The queue runs in memory-only mode when no driver is set.
+     */
+    public fun configureEventPersistence(driver: DatabaseDriver) {
+        eventQueue.setDatabaseDriver(driver)
+        sdkScope.launch {
+            eventQueue.loadFromDisk()
+        }
     }
 
     /**

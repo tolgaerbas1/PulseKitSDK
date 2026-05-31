@@ -22,11 +22,11 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 /**
- * In-memory event queue with offline-first capabilities and simplified backpressure management.
+ * Thread-safe event queue with optional disk-backed persistence.
  *
  * Events are queued locally and flushed according to configuration.
- * This implementation includes comprehensive backpressure handling to prevent
- * unbounded memory growth while maintaining app stability under extreme load.
+ * When a [DatabaseDriver] is provided via [setDatabaseDriver], events are
+ * persisted to disk and survive app restarts.
  */
 public class EventQueue(
     private val config: PulseKitConfig,
@@ -41,6 +41,9 @@ public class EventQueue(
     @Volatile
     private var isProcessing: Boolean = false
 
+    @Volatile
+    private var databaseDriver: DatabaseDriver? = null
+
     // Simplified backpressure management
     private val backpressureManager = SimplifiedBackpressureManager(
         config.backpressureConfig,
@@ -51,6 +54,52 @@ public class EventQueue(
      * Flow of events ready for processing.
      */
     public val eventFlow: SharedFlow<PulseEvent> = _eventFlow.asSharedFlow()
+
+    /**
+     * Set the database driver for disk-backed persistence.
+     *
+     * Call this before [loadFromDisk] to enable persistence.
+     * Calling without a driver (or null) runs the queue in memory-only mode.
+     */
+    public fun setDatabaseDriver(driver: DatabaseDriver?) {
+        databaseDriver = driver
+    }
+
+    /**
+     * Load previously persisted events from disk into the in-memory queue.
+     *
+     * Must be called after [setDatabaseDriver] and before events are enqueued.
+     * On success, all stored events are inserted into the in-memory queue in
+     * their original order and with their original retry counts preserved.
+     */
+    public suspend fun loadFromDisk() {
+        val driver = databaseDriver ?: return
+        driver.initialize()
+        try {
+            val diskEvents = driver.getEventBatch(Int.MAX_VALUE, excludeExpired = true)
+            if (diskEvents.isNotEmpty()) {
+                lock.withLock {
+                    diskEvents.forEach { stored ->
+                        val event = EventSerializer.deserialize(stored.eventData)
+                        val priority = SimplifiedPriorityCalculator.calculatePriority(event)
+                        events.add(
+                            SimplifiedPriorityEvent(
+                                event = event,
+                                priority = priority,
+                                timestamp = stored.queuedAt,
+                                retryCount = stored.retryCount,
+                            ),
+                        )
+                    }
+                }
+                if (config.enableDebugLogging) {
+                    PulseKitLogger.log("PulseKit", "Loaded ${diskEvents.size} events from disk")
+                }
+            }
+        } catch (e: Exception) {
+            PulseKitLogger.log("PulseKit", "Failed to load events from disk: ${e.message}")
+        }
+    }
 
     /**
      * Add an event to the queue with simplified backpressure handling.
@@ -65,8 +114,6 @@ public class EventQueue(
             val maxMemorySize = config.backpressureConfig.maxInMemoryQueueSize
             events.add(priorityEvent)
 
-            // Apply backpressure after adding so every drop policy can decide
-            // across the full candidate set, including the newest event.
             if (events.size > maxMemorySize) {
                 val droppedCount = backpressureManager.applyBackpressure(
                     events,
@@ -85,7 +132,24 @@ public class EventQueue(
             )
         }
 
-        // Emit event for immediate flush trigger if enabled
+        // Persist to disk asynchronously (fire-and-forget, best-effort)
+        val driver = databaseDriver
+        if (driver != null) {
+            scope.launch {
+                try {
+                    val stored = StoredEvent(
+                        eventId = event.eventId.value,
+                        eventType = EventSerializer.getEventType(event),
+                        eventData = EventSerializer.serialize(event),
+                        queuedAt = Clock.System.now(),
+                        retryCount = 0,
+                        expiresAt = Clock.System.now() + config.maxEventAge,
+                    )
+                    driver.insertEvent(stored)
+                } catch (_: Exception) { }
+            }
+        }
+
         if (config.enableOfflineQueueing) {
             scope.launch {
                 _eventFlow.emit(event)
@@ -142,6 +206,15 @@ public class EventQueue(
                 config.backpressureConfig.maxDiskQueueSize,
             )
         }
+
+        val driver = databaseDriver
+        if (driver != null && processedEvents.isNotEmpty()) {
+            scope.launch {
+                try {
+                    driver.deleteEvents(processedEvents.map { it.eventId.value })
+                } catch (_: Exception) { }
+            }
+        }
     }
 
     /**
@@ -150,6 +223,7 @@ public class EventQueue(
      * @param event The event that failed to process
      */
     public fun markFailed(event: PulseEvent) {
+        var newRetryCount: Int? = null
         lock.withLock {
             val index = events.indexOfFirst { it.event.eventId == event.eventId }
             if (index >= 0) {
@@ -161,9 +235,20 @@ public class EventQueue(
                         PulseKitLogger.log("PulseKit", "Event ${event.eventId} exceeded max retries, dropping")
                     }
                 } else {
-                    val updatedEvent = priorityEvent.copy(retryCount = priorityEvent.retryCount + 1)
-                    events[index] = updatedEvent
+                    val updated = priorityEvent.copy(retryCount = priorityEvent.retryCount + 1)
+                    events[index] = updated
+                    newRetryCount = updated.retryCount
                 }
+            }
+        }
+
+        val driver = databaseDriver
+        val retry = newRetryCount
+        if (driver != null && retry != null) {
+            scope.launch {
+                try {
+                    driver.updateRetryCount(listOf(event.eventId.value), retry)
+                } catch (_: Exception) { }
             }
         }
     }
@@ -207,6 +292,23 @@ public class EventQueue(
             )
             backpressureManager.reset()
         }
+
+        val driver = databaseDriver
+        if (driver != null) {
+            scope.launch {
+                try {
+                    driver.clearAllEvents()
+                } catch (_: Exception) { }
+            }
+        }
+    }
+
+    /**
+     * Close the database driver and release resources.
+     */
+    public suspend fun dispose() {
+        databaseDriver?.close()
+        databaseDriver = null
     }
 
     /**

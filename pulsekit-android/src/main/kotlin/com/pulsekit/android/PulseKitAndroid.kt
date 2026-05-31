@@ -17,6 +17,7 @@ import com.pulsekit.core.api.flags.FlagPersistence
 import com.pulsekit.core.api.flags.InMemoryFlagStorage
 import com.pulsekit.core.api.flags.PulseKitFeatureFlags
 import com.pulsekit.core.api.logging.PulseKitLogger
+import com.pulsekit.core.api.storage.createDatabaseDriver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -81,6 +82,11 @@ public object PulseKitAndroid {
 
         // Initialize feature flag system with networking and persistence
         initializeFeatureFlags(context, config, instance)
+
+        // Initialize disk-backed event persistence
+        if (config.enableDiskPersistence) {
+            instance.configureEventPersistence(createDatabaseDriver(context))
+        }
         // Network connectivity monitoring: flush when back online
         setupNetworkConnectivityMonitoring(context, instance)
         // Opt-in crash reporting: track uncaught exceptions as fatal ErrorEvents

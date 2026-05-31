@@ -9,7 +9,7 @@ import kotlin.time.Duration
  * This allows for different implementations on different platforms
  * (JVM, Android, iOS, etc.) while maintaining a common API.
  */
-internal interface DatabaseDriver {
+public interface DatabaseDriver {
 
     /**
      * Initialize the database and create schema if needed.
@@ -102,7 +102,7 @@ internal interface DatabaseDriver {
 /**
  * Database statistics for monitoring and debugging.
  */
-internal data class DatabaseStats(
+public data class DatabaseStats(
     val totalEvents: Int,
     val expiredEvents: Int,
     val databaseSizeBytes: Long,

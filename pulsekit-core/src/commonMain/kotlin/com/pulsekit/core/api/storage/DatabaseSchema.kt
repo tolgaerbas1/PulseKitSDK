@@ -63,7 +63,7 @@ internal object DatabaseSchema {
 /**
  * Represents a stored event in the database.
  */
-internal data class StoredEvent(
+public data class StoredEvent(
     val id: Long = 0,
     val eventId: String,
     val eventType: String,

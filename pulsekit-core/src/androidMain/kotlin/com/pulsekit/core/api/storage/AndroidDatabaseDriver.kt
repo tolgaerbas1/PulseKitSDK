@@ -326,3 +326,6 @@ internal class AndroidDatabaseDriver(
         }
     }
 }
+
+/** Factory to create an Android [DatabaseDriver] from a [Context]. */
+public fun createDatabaseDriver(context: Context): DatabaseDriver = AndroidDatabaseDriver(context)
