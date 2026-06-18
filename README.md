@@ -127,7 +127,7 @@ PulseKit is built with a clean multi-module architecture:
 - **pulsekit-android**: Android bindings — lifecycle, network, database, feature flags
 - **sample-app**: Minimal Android app demonstrating SDK usage
 - **build-logic**: Gradle convention plugins for consistent builds
-- **docs**: Architecture guides, feature documentation, and staff reviews
+- **docs**: Architecture guides, feature documentation, staff reviews, and the [Medium article series plan](docs/MediumArticleSeriesPlan.md)
 
 ### Key Design Decisions
 
